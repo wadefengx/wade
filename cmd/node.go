@@ -8,6 +8,7 @@ import (
 
 	"github.com/wadefengx/wade/internal/config"
 	"github.com/wadefengx/wade/internal/node"
+	"github.com/wadefengx/wade/internal/registry"
 )
 
 var nodeCmd = &cobra.Command{
@@ -211,42 +212,135 @@ var nodeCurrentCmd = &cobra.Command{
 }
 
 var nodeMirrorCmd = &cobra.Command{
-	Use:   "mirror [official|mirror]",
+	Use:   "mirror",
 	Short: "Show or set Node.js download mirror",
-	Long: `Show or change where wade downloads Node.js binaries from.
-
-  wade node mirror           # show current mirror
-  wade node mirror official  # use official nodejs.org
-  wade node mirror mirror    # use npmmirror.com (fast in China)`,
+	Long:  `Manage where wade downloads Node.js binaries from.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
-		if err != nil {
-			return err
+		if len(args) > 0 {
+			return mirrorUse(args[0])
 		}
-
-		if len(args) == 0 {
-			current := cfg.NodeMirror
-			label := "mirror (npmmirror.com)"
-			if strings.Contains(current, "nodejs.org") {
-				label = "official (nodejs.org)"
-			}
-			fmt.Printf("🌐 Node download source: %s\n   %s\n", label, current)
-			return nil
-		}
-
-		switch args[0] {
-		case "official":
-			cfg.NodeMirror = "https://nodejs.org/dist/"
-			fmt.Println("🌐 Switched to official (nodejs.org)")
-		case "mirror":
-			cfg.NodeMirror = "https://npmmirror.com/mirrors/node/"
-			fmt.Println("🌐 Switched to mirror (npmmirror.com)")
-		default:
-			return fmt.Errorf("unknown mirror: %s — use 'official' or 'mirror'", args[0])
-		}
-
-		return config.Save(cfg)
+		cfg, _ := config.Load()
+		label := findMirrorLabel(cfg.NodeMirror)
+		fmt.Printf("🌐 Node download source: %s\n   %s\n", label, cfg.NodeMirror)
+		return nil
 	},
+}
+
+var nodeMirrorLsCmd = &cobra.Command{
+	Use:   "ls",
+	Short: "List available Node mirrors",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, _ := config.Load()
+		headers := []string{"Name", "URL", "Status"}
+		var rows [][]string
+		for _, m := range builtinMirrors {
+			status := ""
+			if strings.HasPrefix(cfg.NodeMirror, m.URL) || cfg.NodeMirror == m.URL {
+				status = "current"
+			}
+			if m.Name == "official" {
+				status += " global"
+			} else if status == "" {
+				status = "cn"
+			}
+			rows = append(rows, []string{m.Name, m.URL, strings.TrimSpace(status)})
+		}
+		renderTable(headers, rows)
+		return nil
+	},
+}
+
+var nodeMirrorUseCmd = &cobra.Command{
+	Use:   "use <name>",
+	Short: "Switch Node download mirror",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return mirrorUse(args[0])
+	},
+}
+
+var nodeMirrorTestCmd = &cobra.Command{
+	Use:   "test",
+	Short: "Test latency of Node mirrors",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("⚡ Testing Node mirror latency...")
+		// Only test node mirrors, not npm registries
+		mirrorRegs := make([]registry.Registry, len(builtinMirrors))
+		for i, m := range builtinMirrors {
+			mirrorRegs[i] = registry.Registry{Name: m.Name, URL: m.URL, IsBuiltIn: true}
+		}
+		results := registry.TestMirrors(mirrorRegs)
+		headers := []string{"Mirror", "URL", "Latency"}
+		var rows [][]string
+		for _, r := range results {
+			lat := r.Latency.String()
+			if r.Error != "" {
+				lat = r.Error
+			}
+			rows = append(rows, []string{r.Name, r.URL, lat})
+		}
+		renderTable(headers, rows)
+		return nil
+	},
+}
+
+type mirror struct {
+	Name string
+	URL  string
+}
+
+var builtinMirrors = []mirror{
+	{Name: "official", URL: "https://nodejs.org/dist/"},
+	{Name: "npmmirror", URL: "https://npmmirror.com/mirrors/node/"},
+	{Name: "tsinghua", URL: "https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/"},
+	{Name: "ustc", URL: "https://mirrors.ustc.edu.cn/node/"},
+	{Name: "huawei", URL: "https://mirrors.huaweicloud.com/nodejs/"},
+	{Name: "aliyun", URL: "https://mirrors.aliyun.com/nodejs-release/"},
+	{Name: "tencent", URL: "https://mirrors.tencent.com/nodejs-release/"},
+}
+
+func findMirrorLabel(url string) string {
+	for _, m := range builtinMirrors {
+		if strings.HasPrefix(url, m.URL) || url == m.URL {
+			return m.Name
+		}
+	}
+	return "custom"
+}
+
+func mirrorUse(name string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	var found *mirror
+	for _, m := range builtinMirrors {
+		if m.Name == name {
+			found = &m
+			break
+		}
+	}
+	if found == nil {
+		return fmt.Errorf("unknown mirror: %s — use 'wade node mirror ls' to see available mirrors", name)
+	}
+
+	cfg.NodeMirror = found.URL
+	if err := config.Save(cfg); err != nil {
+		return err
+	}
+
+	fmt.Printf("🌐 Switched Node mirror to %s (%s)\n", found.Name, found.URL)
+	return nil
+}
+
+// toRegistryMirrors converts built-in mirrors to registry.Registry for the test function
+func toRegistryMirrors() []registry.Registry {
+	regs := make([]registry.Registry, len(builtinMirrors))
+	for i, m := range builtinMirrors {
+		regs[i] = registry.Registry{Name: m.Name, URL: m.URL, IsBuiltIn: true}
+	}
+	return regs
 }
 
 func init() {
@@ -259,4 +353,7 @@ func init() {
 	nodeCmd.AddCommand(nodeUninstallCmd)
 	nodeCmd.AddCommand(nodeCurrentCmd)
 	nodeCmd.AddCommand(nodeMirrorCmd)
+	nodeMirrorCmd.AddCommand(nodeMirrorLsCmd)
+	nodeMirrorCmd.AddCommand(nodeMirrorUseCmd)
+	nodeMirrorCmd.AddCommand(nodeMirrorTestCmd)
 }
