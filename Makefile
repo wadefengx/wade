@@ -9,8 +9,8 @@ build:
 	go build $(LDFLAGS) -o $(BINARY) .
 
 install: build
-	cp $(BINARY) ~/.local/bin/
-	@echo "Installed to ~/.local/bin/$(BINARY)"
+	sudo cp $(BINARY) /usr/local/bin/
+	@echo "Installed to /usr/local/bin/$(BINARY)"
 
 test:
 	go test ./... -v -count=1
