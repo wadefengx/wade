@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: darwin
+            arch: amd64
+            ext: tar.gz
+          - os: darwin
+            arch: arm64
+            ext: tar.gz
+          - os: linux
+            arch: amd64
+            ext: tar.gz
+          - os: windows
+            arch: amd64
+            ext: zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          go build -ldflags="-s -w" -o wade${{ matrix.os == 'windows' && '.exe' || '' }} .
+
+      - name: Package (tar.gz)
+        if: matrix.ext == 'tar.gz'
+        run: tar czf wade-${{ matrix.os }}-${{ matrix.arch }}.tar.gz wade
+
+      - name: Package (zip)
+        if: matrix.ext == 'zip'
+        run: zip wade-${{ matrix.os }}-${{ matrix.arch }}.zip wade.exe
+
+      - name: Checksum
+        run: shasum -a 256 wade-${{ matrix.os }}-${{ matrix.arch }}.${{ matrix.ext }} > wade-${{ matrix.os }}-${{ matrix.arch }}.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wade-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            wade-${{ matrix.os }}-${{ matrix.arch }}.${{ matrix.ext }}
+            wade-${{ matrix.os }}-${{ matrix.arch }}.sha256
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "wade ${{ github.ref_name }}"
+          files: |
+            wade-*/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

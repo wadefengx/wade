@@ -25,5 +25,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolP("help", "h", false, "help for wade")
+	// Version is injected by main.go via SetVersion
 }

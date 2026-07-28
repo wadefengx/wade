@@ -1,0 +1,26 @@
+{
+  "version": "${VERSION}",
+  "description": "All-in-one Node.js version & npm/yarn/pnpm registry manager",
+  "homepage": "https://github.com/wadefengx/wade",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/wadefengx/wade/releases/download/v${VERSION}/wade-windows-amd64.zip",
+      "hash": "${SHA_WINDOWS_AMD64}",
+      "bin": "wade.exe"
+    }
+  },
+  "post_install": [
+    "wade.exe setup"
+  ],
+  "checkver": {
+    "github": "https://github.com/wadefengx/wade"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/wadefengx/wade/releases/download/v$version/wade-windows-amd64.zip"
+      }
+    }
+  }
+}
