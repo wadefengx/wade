@@ -1,12 +1,12 @@
 # Wade
 
-> 🏄 All-in-one Node.js version & registry manager. Single binary, zero deps.
+> 🏄 All-in-one runtime manager: Node.js · Go · Python. Single binary, zero deps.
 
 [![Go](https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go)](https://go.dev)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/wadefengx/wade/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Wade replaces **nvm** + **cgr/nrm** — manages Node.js versions, switches npm/yarn/pnpm registries, controls Node download source. Works on macOS, Windows, and Linux.
+Wade replaces **nvm + cgr/nrm + gvm + pyenv**. Single binary, install once, works everywhere.
 
 📖 [中文文档](README_zh.md) · 🌐 [Website](https://wadefengx.github.io/wade)
 
@@ -79,16 +79,17 @@ After `wade -i` this is done automatically. If you need to do it manually:
 ## Quick Start
 
 ```bash
-wade -i          # Interactive setup (recommended)
+wade -i          # Interactive setup — choose Node, Go, Python, or all
+wade init -y     # Non-interactive: auto-config all three (China-friendly)
 ```
 
-Or step by step:
+### Per-runtime
 
-```bash
-wade node install 20           # Install Node 20
-wade registry use taobao       # Faster in China
-wade status
-```
+| Runtime | Install | Switch | Lists | Mirror | Registry |
+|---------|---------|--------|-------|--------|----------|
+| **Node** | `wade node install 20` | `wade node use 20` | `ls` / `ls-remote` | `node mirror` | `registry` |
+| **Go** | `wade go install 1.23` | `wade go use 1.23` | `ls` / `ls-remote` | `go mirror` | `go proxy` |
+| **Python** | (system) | — | `python ls` | — | `python registry` |
 
 ---
 

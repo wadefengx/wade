@@ -1,13 +1,13 @@
 # Wade
 
-> 🏄 一站式 Node.js 版本与镜像源管理器。单二进制，零依赖。
+> 🏄 一站式运行时管理工具：Node.js · Go · Python。单二进制，零依赖。
 
 [![Go](https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go)](https://go.dev)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-📖 [English](README.md) · 🌐 [Website](https://wadefengx.github.io/wade)
+Wade 用一个工具替代 **nvm + cgr/nrm + gvm + pyenv**。
 
----
+📖 [English](README.md) · 🌐 [Website](https://wadefengx.github.io/wade)
 
 ## 安装
 
@@ -84,14 +84,20 @@ wade status
 
 | 命令 | 说明 |
 |------|------|
-| `wade -i` | 交互式设置向导 |
-| `wade init -y` | 非交互式（默认值） |
+| `wade -i` | 交互式设置（选 Node/Go/Python/All） |
+| `wade init -y` | 非交互式，自动配置全部（中国友好） |
 | `wade node install 20` | 安装 Node 20 |
 | `wade node use 20` | 切换到 Node 20 |
-| `wade node mirror official` | Node 下载切到官方源 |
+| `wade node mirror ls` | 选择 Node 下载源 |
 | `wade registry use taobao` | npm/yarn/pnpm 切淘宝 |
-| `wade registry test` | 镜像测速 |
+| `wade go install 1.23` | 安装 Go 1.23 |
+| `wade go use 1.23` | 切换到 Go 1.23 |
+| `wade go mirror use google-cn` | Go 下载切国内镜像 |
+| `wade go proxy use goproxy.cn` | Go 模块代理切国内 |
+| `wade python ls` | 检测系统 Python |
+| `wade python registry use tsinghua` | pip 切清华源 |
 | `wade status` | 当前状态 |
+| `wade registry test` | 镜像测速 |
 
 ---
 
