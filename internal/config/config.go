@@ -15,10 +15,12 @@ type Registry struct {
 
 // Config holds all wade configuration
 type Config struct {
-	DefaultVersion  string     `toml:"default_version"`
-	NodeMirror      string     `toml:"node_mirror"`
-	CurrentRegistry string     `toml:"current_registry"`
-	Registries      []Registry `toml:"registries"`
+	DefaultVersion   string     `toml:"default_version"`
+	NodeMirror       string     `toml:"node_mirror"`
+	CurrentRegistry  string     `toml:"current_registry"`
+	Registries       []Registry `toml:"registries"`
+	GoMirror         string     `toml:"go_mirror"`
+	DefaultGoVersion string     `toml:"default_go_version"`
 }
 
 // DefaultConfig returns sensible defaults
