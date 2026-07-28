@@ -331,6 +331,16 @@ wade status
 
 **Output:** `wade v1.0.0`
 
+### 4.16 `wade init` / `wade -i`
+
+**Purpose:** Interactive setup wizard (4 steps: mirror → version → registry → PATH).
+
+**Flags:** `-y, --yes` skip all Y/n prompts.
+
+### 4.17 `wade node mirror [official|mirror]`
+
+**Purpose:** Show or set Node.js binary download source. Different from registry: controls where `wade node install` downloads from, not where `npm install` downloads from.
+
 ---
 
 ## 5. Preset Registry Data

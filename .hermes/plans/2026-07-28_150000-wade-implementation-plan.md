@@ -661,6 +661,22 @@ git commit -m "feat: add curl | bash install script"
 
 ---
 
+## M6: Interactive Setup Wizard
+
+### Task 6.1: `wade -i` shortcut
+- Add `-i` flag to root command → launches interactive wizard
+
+### Task 6.2: `wade init` wizard
+- 4-step interactive wizard: Node mirror → version → registry → PATH
+- `wade init -y` auto-mode (skip prompts)
+
+### Task 6.3: `wade node mirror`
+- `wade node mirror` — show current download source
+- `wade node mirror official` — switch to nodejs.org
+- `wade node mirror mirror` — switch to npmmirror.com
+
+---
+
 ## Verification Checklist
 
 After each milestone, run:
