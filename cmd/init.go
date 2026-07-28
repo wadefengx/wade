@@ -1,0 +1,255 @@
+package cmd
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+
+	"github.com/spf13/cobra"
+
+	"github.com/wadefengx/wade/internal/config"
+	"github.com/wadefengx/wade/internal/node"
+	"github.com/wadefengx/wade/internal/registry"
+)
+
+var initInteractive bool
+
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Interactive setup wizard for wade",
+	Long: `Interactive wizard that guides you through setting up wade:
+1. Install recommended Node.js versions
+2. Pick the fastest registry mirror
+3. Configure your shell PATH
+4. Pin Node version for the current project`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if !initInteractive {
+			// Non-interactive: just write .wade-version for current project
+			return initProjectDotfile()
+		}
+		return runInteractiveWizard()
+	},
+}
+
+func runInteractiveWizard() error {
+	reader := bufio.NewReader(os.Stdin)
+	input := func(prompt string) string {
+		fmt.Print(prompt)
+		s, _ := reader.ReadString('\n')
+		return strings.TrimSpace(s)
+	}
+
+	fmt.Println("🏄  Welcome to Wade!")
+	fmt.Println("   Let's get your Node.js environment set up.")
+	fmt.Println()
+
+	// ── Step 1: Node.js version ──
+	fmt.Println("📦 Step 1: Node.js version")
+	fmt.Println()
+
+	cfg, _ := config.Load()
+
+	// Check what's installed
+	installed, _ := node.InstalledVersions()
+	if len(installed) > 0 {
+		fmt.Printf("   Already installed: %s\n", strings.Join(installed, ", "))
+		fmt.Println()
+	}
+
+	// Suggest LTS versions
+	recommended := []struct {
+		label string
+		ver   string
+	}{{"v22 (LTS)", "22"}, {"v20 (LTS)", "20"}, {"v18 (LTS)", "18"}}
+
+	fmt.Println("   Recommended LTS versions:")
+	for i, r := range recommended {
+		installedMark := ""
+		for _, v := range installed {
+			if strings.HasPrefix(v, "v"+r.ver) {
+				installedMark = " ✓ installed"
+				break
+			}
+		}
+		fmt.Printf("     %d. %s%s\n", i+1, r.label, installedMark)
+	}
+	fmt.Println("     4. Skip (keep current)")
+	fmt.Println()
+
+	choice := input("   Choose [1-4]: ")
+	if idx := parseChoice(choice, 1, 4); idx >= 1 && idx <= 3 {
+		ver := recommended[idx-1].ver
+		// Check if already installed
+		alreadyInstalled := false
+		for _, v := range installed {
+			if strings.HasPrefix(v, "v"+ver) {
+				alreadyInstalled = true
+				break
+			}
+		}
+
+		if !alreadyInstalled {
+			fmt.Printf("\n   ⬇️  Installing Node %s...\n", ver)
+			resolved, err := node.ResolveVersion(ver, cfg.NodeMirror)
+			if err != nil {
+				fmt.Printf("   ⚠️  Could not resolve %s: %v\n", ver, err)
+			} else {
+				if err := node.Install(resolved, cfg.NodeMirror); err != nil {
+					fmt.Printf("   ⚠️  Install failed: %v\n", err)
+				} else {
+					// Set as default
+					cfg.DefaultVersion = resolved
+					config.Save(cfg)
+					node.UseVersion(resolved)
+					fmt.Printf("   ✅ Node %s installed and activated\n", resolved)
+				}
+			}
+		} else {
+			fmt.Printf("\n   ✅ Node %s already installed\n", ver)
+			// Activate it
+			for _, v := range installed {
+				if strings.HasPrefix(v, "v"+ver) {
+					node.UseVersion(v)
+					break
+				}
+			}
+		}
+	}
+
+	fmt.Println()
+
+	// ── Step 2: Registry ──
+	fmt.Println("🌐 Step 2: Registry mirror")
+	fmt.Println()
+
+	fmt.Println("   Testing registry speeds...")
+	results := registry.Test(toRegistries(nil))
+	if len(results) > 0 && results[0].Error == "" {
+		fmt.Printf("   Fastest: %s (%s)\n", results[0].Name, results[0].Latency.Round(1000000))
+	}
+	fmt.Println()
+
+	allRegs := registry.All(toRegistries(nil))
+	fmt.Println("   Available registries:")
+	for i, r := range allRegs {
+		if i >= 5 {
+			break
+		}
+		marker := ""
+		if r.Name == cfg.CurrentRegistry {
+			marker = " ← current"
+		}
+		fmt.Printf("     %d. %s%s\n", i+1, r.Name, marker)
+	}
+	fmt.Println()
+
+	choice = input(fmt.Sprintf("   Choose [1-5, default: %s]: ", cfg.CurrentRegistry))
+	if idx := parseChoice(choice, 1, 5); idx >= 1 {
+		regName := allRegs[idx-1].Name
+		if regName != cfg.CurrentRegistry {
+			if err := registry.Use(regName); err != nil {
+				fmt.Printf("   ⚠️  %v\n", err)
+			} else {
+				fmt.Printf("   ✅ Switched to %s\n", regName)
+			}
+		}
+	}
+
+	fmt.Println()
+
+	// ── Step 3: PATH & project pinning ──
+	fmt.Println("⚙️  Step 3: PATH & project")
+	fmt.Println()
+
+	// Check if shims are in PATH
+	shimDir, _ := node.ShimDir()
+	pathHasShim := strings.Contains(os.Getenv("PATH"), shimDir)
+
+	if !pathHasShim {
+		shell := detectShell()
+		rcFile := shellConfigPath(shell)
+		if rcFile != "" {
+			fmt.Printf("   Add ~/.wade/shims to %s?\n", filepath.Base(rcFile))
+			choice = input("   [Y/n]: ")
+			if choice == "" || strings.ToLower(choice) == "y" {
+				appendToFile(rcFile, fmt.Sprintf("\n# wade — Node version manager\nexport PATH=\"%s:$PATH\"\n", shimDir))
+				fmt.Printf("   ✅ Added to %s (run 'source %s' to apply)\n", rcFile, rcFile)
+			}
+		}
+	} else {
+		fmt.Println("   ✅ PATH already configured")
+	}
+
+	// Project-level .wade-version
+	cwd, _ := os.Getwd()
+	fmt.Printf("\n   📁 Current directory: %s\n", cwd)
+	fmt.Print("   Create .wade-version for this project? [Y/n]: ")
+	choice, _ = reader.ReadString('\n')
+	choice = strings.TrimSpace(strings.ToLower(choice))
+	if choice == "" || choice == "y" {
+		current, err := node.CurrentVersion()
+		if err == nil {
+			os.WriteFile(filepath.Join(cwd, ".wade-version"), []byte(current+"\n"), 0644)
+			fmt.Printf("   ✅ Created .wade-version (%s)\n", current)
+		}
+	}
+
+	fmt.Println()
+
+	// ── Summary ──
+	fmt.Println("✨ All done! Here's your setup:")
+	fmt.Println()
+	cfg, _ = config.Load()
+	cur, _ := node.CurrentVersion()
+	curReg, curURL, _ := registry.GetCurrent()
+	fmt.Printf("   🟢 Node:     %s (default)\n", cur)
+	fmt.Printf("   📦 Registry: %s → %s\n", curReg, curURL)
+	fmt.Printf("   📁 Config:   %s\n", mustConfigPath())
+	fmt.Println()
+	fmt.Println("   Try: wade status | wade node ls | wade registry test")
+	fmt.Println()
+
+	return nil
+}
+
+// initProjectDotfile writes .wade-version in the current directory
+func initProjectDotfile() error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	current, err := node.CurrentVersion()
+	if err != nil {
+		return fmt.Errorf("no active Node version — run 'wade node use <version>' first")
+	}
+
+	path := filepath.Join(cwd, ".wade-version")
+	if err := os.WriteFile(path, []byte(current+"\n"), 0644); err != nil {
+		return err
+	}
+
+	fmt.Printf("📌 Pinned %s → %s\n", cwd, current)
+	return nil
+}
+
+func parseChoice(s string, min, max int) int {
+	n, err := strconv.Atoi(s)
+	if err != nil || n < min || n > max {
+		return 0
+	}
+	return n
+}
+
+func mustConfigPath() string {
+	p, _ := config.ConfigPath()
+	return p
+}
+
+func init() {
+	rootCmd.AddCommand(initCmd)
+	initCmd.Flags().BoolVarP(&initInteractive, "interactive", "i", false, "Run interactive setup wizard")
+}
