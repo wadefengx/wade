@@ -210,6 +210,45 @@ var nodeCurrentCmd = &cobra.Command{
 	},
 }
 
+var nodeMirrorCmd = &cobra.Command{
+	Use:   "mirror [official|mirror]",
+	Short: "Show or set Node.js download mirror",
+	Long: `Show or change where wade downloads Node.js binaries from.
+
+  wade node mirror           # show current mirror
+  wade node mirror official  # use official nodejs.org
+  wade node mirror mirror    # use npmmirror.com (fast in China)`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+
+		if len(args) == 0 {
+			current := cfg.NodeMirror
+			label := "mirror (npmmirror.com)"
+			if strings.Contains(current, "nodejs.org") {
+				label = "official (nodejs.org)"
+			}
+			fmt.Printf("🌐 Node download source: %s\n   %s\n", label, current)
+			return nil
+		}
+
+		switch args[0] {
+		case "official":
+			cfg.NodeMirror = "https://nodejs.org/dist/"
+			fmt.Println("🌐 Switched to official (nodejs.org)")
+		case "mirror":
+			cfg.NodeMirror = "https://npmmirror.com/mirrors/node/"
+			fmt.Println("🌐 Switched to mirror (npmmirror.com)")
+		default:
+			return fmt.Errorf("unknown mirror: %s — use 'official' or 'mirror'", args[0])
+		}
+
+		return config.Save(cfg)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(nodeCmd)
 	nodeCmd.AddCommand(nodeInstallCmd)
@@ -219,4 +258,5 @@ func init() {
 	nodeCmd.AddCommand(nodeDefaultCmd)
 	nodeCmd.AddCommand(nodeUninstallCmd)
 	nodeCmd.AddCommand(nodeCurrentCmd)
+	nodeCmd.AddCommand(nodeMirrorCmd)
 }

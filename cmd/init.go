@@ -15,28 +15,18 @@ import (
 	"github.com/wadefengx/wade/internal/registry"
 )
 
-var initInteractive bool
-
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Interactive setup wizard for wade",
-	Long: `Interactive wizard that guides you through setting up wade:
-1. Install recommended Node.js versions
-2. Pick the fastest registry mirror
-3. Configure your shell PATH
-4. Pin Node version for the current project`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if !initInteractive {
-			// Non-interactive: just write .wade-version for current project
-			return initProjectDotfile()
-		}
-		return runInteractiveWizard()
-	},
-}
-
-func runInteractiveWizard() error {
+func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 	reader := bufio.NewReader(os.Stdin)
+
+	// Check for --yes / -y flag
+	autoYes, _ := cmd.Flags().GetBool("yes")
+
 	input := func(prompt string) string {
+		if autoYes {
+			fmt.Print(prompt)
+			fmt.Println(" [y]")
+			return "y"
+		}
 		fmt.Print(prompt)
 		s, _ := reader.ReadString('\n')
 		return strings.TrimSpace(s)
@@ -46,20 +36,38 @@ func runInteractiveWizard() error {
 	fmt.Println("   Let's get your Node.js environment set up.")
 	fmt.Println()
 
-	// ── Step 1: Node.js version ──
-	fmt.Println("📦 Step 1: Node.js version")
-	fmt.Println()
-
 	cfg, _ := config.Load()
 
-	// Check what's installed
+	// ── Step 1: Node download mirror ──
+	fmt.Println("🌐 Step 1: Node.js download source")
+	fmt.Println()
+	fmt.Println("   Where should wade download Node.js from?")
+	fmt.Println("     1.  Mirror (npmmirror.com)  ← fast in China, default")
+	fmt.Println("     2.  Official (nodejs.org)    ← global")
+	fmt.Println()
+
+	choice := input("   Choose [1-2]: ")
+	switch choice {
+	case "2":
+		cfg.NodeMirror = "https://nodejs.org/dist/"
+		fmt.Println("   ✅ Using official nodejs.org")
+	default:
+		cfg.NodeMirror = "https://npmmirror.com/mirrors/node/"
+		fmt.Println("   ✅ Using npmmirror.com (fast in China)")
+	}
+	config.Save(cfg)
+	fmt.Println()
+
+	// ── Step 2: Node.js version ──
+	fmt.Println("📦 Step 2: Node.js version")
+	fmt.Println()
+
 	installed, _ := node.InstalledVersions()
 	if len(installed) > 0 {
 		fmt.Printf("   Already installed: %s\n", strings.Join(installed, ", "))
 		fmt.Println()
 	}
 
-	// Suggest LTS versions
 	recommended := []struct {
 		label string
 		ver   string
@@ -79,10 +87,9 @@ func runInteractiveWizard() error {
 	fmt.Println("     4. Skip (keep current)")
 	fmt.Println()
 
-	choice := input("   Choose [1-4]: ")
+	choice = input("   Choose [1-4]: ")
 	if idx := parseChoice(choice, 1, 4); idx >= 1 && idx <= 3 {
 		ver := recommended[idx-1].ver
-		// Check if already installed
 		alreadyInstalled := false
 		for _, v := range installed {
 			if strings.HasPrefix(v, "v"+ver) {
@@ -90,26 +97,21 @@ func runInteractiveWizard() error {
 				break
 			}
 		}
-
 		if !alreadyInstalled {
 			fmt.Printf("\n   ⬇️  Installing Node %s...\n", ver)
 			resolved, err := node.ResolveVersion(ver, cfg.NodeMirror)
 			if err != nil {
-				fmt.Printf("   ⚠️  Could not resolve %s: %v\n", ver, err)
+				fmt.Printf("   ⚠️  %v\n", err)
+			} else if err := node.Install(resolved, cfg.NodeMirror); err != nil {
+				fmt.Printf("   ⚠️  %v\n", err)
 			} else {
-				if err := node.Install(resolved, cfg.NodeMirror); err != nil {
-					fmt.Printf("   ⚠️  Install failed: %v\n", err)
-				} else {
-					// Set as default
-					cfg.DefaultVersion = resolved
-					config.Save(cfg)
-					node.UseVersion(resolved)
-					fmt.Printf("   ✅ Node %s installed and activated\n", resolved)
-				}
+				cfg.DefaultVersion = resolved
+				config.Save(cfg)
+				node.UseVersion(resolved)
+				fmt.Printf("   ✅ Node %s installed and activated\n", resolved)
 			}
 		} else {
 			fmt.Printf("\n   ✅ Node %s already installed\n", ver)
-			// Activate it
 			for _, v := range installed {
 				if strings.HasPrefix(v, "v"+ver) {
 					node.UseVersion(v)
@@ -118,11 +120,10 @@ func runInteractiveWizard() error {
 			}
 		}
 	}
-
 	fmt.Println()
 
-	// ── Step 2: Registry ──
-	fmt.Println("🌐 Step 2: Registry mirror")
+	// ── Step 3: Registry mirror ──
+	fmt.Println("📦 Step 3: Registry mirror (npm install source)")
 	fmt.Println()
 
 	fmt.Println("   Testing registry speeds...")
@@ -133,7 +134,7 @@ func runInteractiveWizard() error {
 	fmt.Println()
 
 	allRegs := registry.All(toRegistries(nil))
-	fmt.Println("   Available registries:")
+	fmt.Println("   Choose registry for npm/yarn/pnpm:")
 	for i, r := range allRegs {
 		if i >= 5 {
 			break
@@ -146,25 +147,23 @@ func runInteractiveWizard() error {
 	}
 	fmt.Println()
 
-	choice = input(fmt.Sprintf("   Choose [1-5, default: %s]: ", cfg.CurrentRegistry))
+	choice = input(fmt.Sprintf("   Choose [1-5]: "))
 	if idx := parseChoice(choice, 1, 5); idx >= 1 {
 		regName := allRegs[idx-1].Name
 		if regName != cfg.CurrentRegistry {
 			if err := registry.Use(regName); err != nil {
 				fmt.Printf("   ⚠️  %v\n", err)
 			} else {
-				fmt.Printf("   ✅ Switched to %s\n", regName)
+				fmt.Printf("   ✅ Switched registry to %s\n", regName)
 			}
 		}
 	}
-
 	fmt.Println()
 
-	// ── Step 3: PATH & project pinning ──
-	fmt.Println("⚙️  Step 3: PATH & project")
+	// ── Step 4: PATH & project ──
+	fmt.Println("⚙️  Step 4: PATH & project")
 	fmt.Println()
 
-	// Check if shims are in PATH
 	shimDir, _ := node.ShimDir()
 	pathHasShim := strings.Contains(os.Getenv("PATH"), shimDir)
 
@@ -183,7 +182,6 @@ func runInteractiveWizard() error {
 		fmt.Println("   ✅ PATH already configured")
 	}
 
-	// Project-level .wade-version
 	cwd, _ := os.Getwd()
 	fmt.Printf("\n   📁 Current directory: %s\n", cwd)
 	fmt.Print("   Create .wade-version for this project? [Y/n]: ")
@@ -196,7 +194,6 @@ func runInteractiveWizard() error {
 			fmt.Printf("   ✅ Created .wade-version (%s)\n", current)
 		}
 	}
-
 	fmt.Println()
 
 	// ── Summary ──
@@ -206,34 +203,18 @@ func runInteractiveWizard() error {
 	cur, _ := node.CurrentVersion()
 	curReg, curURL, _ := registry.GetCurrent()
 	fmt.Printf("   🟢 Node:     %s (default)\n", cur)
+	fmt.Printf("   🌐 Node src: %s\n", cfg.NodeMirror)
 	fmt.Printf("   📦 Registry: %s → %s\n", curReg, curURL)
 	fmt.Printf("   📁 Config:   %s\n", mustConfigPath())
 	fmt.Println()
 	fmt.Println("   Try: wade status | wade node ls | wade registry test")
 	fmt.Println()
-
 	return nil
 }
 
-// initProjectDotfile writes .wade-version in the current directory
-func initProjectDotfile() error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	current, err := node.CurrentVersion()
-	if err != nil {
-		return fmt.Errorf("no active Node version — run 'wade node use <version>' first")
-	}
-
-	path := filepath.Join(cwd, ".wade-version")
-	if err := os.WriteFile(path, []byte(current+"\n"), 0644); err != nil {
-		return err
-	}
-
-	fmt.Printf("📌 Pinned %s → %s\n", cwd, current)
-	return nil
+func mustConfigPath() string {
+	p, _ := config.ConfigPath()
+	return p
 }
 
 func parseChoice(s string, min, max int) int {
@@ -242,14 +223,4 @@ func parseChoice(s string, min, max int) int {
 		return 0
 	}
 	return n
-}
-
-func mustConfigPath() string {
-	p, _ := config.ConfigPath()
-	return p
-}
-
-func init() {
-	rootCmd.AddCommand(initCmd)
-	initCmd.Flags().BoolVarP(&initInteractive, "interactive", "i", false, "Run interactive setup wizard")
 }
