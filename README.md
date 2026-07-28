@@ -6,115 +6,124 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/wadefengx/wade/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**Wade** is a single binary that replaces **nvm** + **cgr/nrm** — manages Node.js versions, and switches npm/yarn/pnpm registries with one command.
+**Wade** replaces **nvm** + **cgr/nrm** — manages Node.js versions, and switches npm/yarn/pnpm registries with one command. Single binary, zero dependencies, works on macOS and Windows.
 
-### Why Wade?
+📖 [中文文档](README_zh.md) · 🌐 [Website](https://wadefengx.github.io/wade)
+
+---
+
+## Why Wade?
 
 | Problem | nvm | cgr/nrm | **Wade** |
 |---------|-----|---------|----------|
 | Node version management | ✅ | ❌ | ✅ |
 | Registry switching | ❌ | ✅ (npm only) | ✅ (npm + yarn + pnpm) |
-| Global install, works everywhere | ❌ (per-version isolation) | ❌ (npm global, tied to Node version) | ✅ (single binary) |
-| Cross-platform (macOS + Windows) | ✅ | ❌ | ✅ |
+| Global install, works everywhere | ❌ | ❌ (tied to Node version) | ✅ |
+| Cross-platform | ✅ | ❌ | ✅ |
+| Mirror downloads (China-friendly) | ❌ | — | ✅ |
 
 ---
 
 ## Installation
 
-### macOS
+### From Source (all platforms, requires Go 1.23+)
+
+```bash
+git clone https://github.com/wadefengx/wade.git
+cd wade
+go build -o /usr/local/bin/wade .   # or ~/.local/bin/
+wade setup
+```
+
+### macOS (Homebrew — coming soon)
 
 ```bash
 brew install wadefengx/tap/wade
 ```
 
-### Windows
+### Windows (Scoop — coming soon)
 
 ```powershell
 scoop bucket add wade https://github.com/wadefengx/scoop-wade
 scoop install wade
 ```
 
-### Any platform (one-liner)
+### Post-install: add to PATH
 
-```bash
-curl -fsSL https://github.com/wadefengx/wade/releases/latest/download/install.sh | bash
-```
-
-### Post-install
-
-```bash
-wade setup   # Creates ~/.wade/ and prints PATH instructions
-```
-
-Add this to your shell config (`.zshrc` / `.bashrc`):
+Add this to your shell config (`~/.zshrc` / `~/.bashrc`):
 
 ```bash
 export PATH="$HOME/.wade/shims:$PATH"
 ```
+
+Then restart your terminal or run `source ~/.zshrc`.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Registry management (works immediately, no Node required)
+# ── Registry management (works immediately, no Node required) ──
 wade registry ls                 # List all registries
-wade registry use taobao         # Switch all PMs to taobao mirror
+wade registry use taobao         # Switch npm/yarn/pnpm to taobao mirror
 wade registry test               # Test latency of all registries
 wade registry add corp https://npm.mycompany.com/  # Add custom registry
 
-# Node version management (coming soon)
-wade node install 20             # Install Node 20
+# ── Node version management ──
+wade node install 20             # Install Node 20 (from npmmirror.com)
 wade node use 20                 # Switch to Node 20
 wade node ls                     # List installed versions
+wade node ls-remote              # See available versions
+wade node default 20             # Set as default
 
-# Status
-wade status                      # Show current environment
+# ── Status ──
+wade status                      # See current environment
 ```
 
 ---
 
 ## Commands
 
-### `wade registry` — Manage registries
+### `wade registry`
 
 ```bash
-wade registry ls          # List all registries (built-in + custom)
-wade registry use <name>  # Switch npm/yarn/pnpm to a registry
+wade registry ls          # All registries (built-in + custom)
+wade registry use <name>  # Switch npm/yarn/pnpm at once
 wade registry add <n> <u> # Add custom registry
 wade registry del <name>  # Delete custom registry
-wade registry test        # Test latency of all registries
+wade registry test        # Latency test (fastest first)
 ```
 
 Built-in registries:
 
-| Name | URL |
-|------|-----|
+| Registry | URL |
+|----------|-----|
 | `npm` | https://registry.npmjs.org/ |
 | `taobao` | https://registry.npmmirror.com/ |
 | `tencent` | https://mirrors.tencent.com/npm/ |
 | `huawei` | https://repo.huaweicloud.com/repository/npm/ |
 | `cnpm` | http://r.cnpmjs.org/ |
 
-### `wade node` — Manage Node.js versions (🚧 in progress)
+### `wade node`
 
 ```bash
-wade node install <ver>   # Install a Node version
-wade node use <ver>       # Switch to a version
-wade node ls              # List installed versions
-wade node ls-remote       # List available versions
-wade node default <ver>   # Set default version
+wade node install <ver>   # Install a version (e.g., "18", "18.20", "latest")
+wade node use <ver>       # Activate a version
+wade node ls              # Installed versions
+wade node ls-remote       # Available versions from mirror
+wade node default <ver>   # Set default
 wade node uninstall <ver> # Remove a version
+wade node current         # Print active version
 ```
 
-### `wade status` — Show current state
+### `wade status`
 
 ```
 wade status
 ────────────
   Registry:   taobao (https://registry.npmmirror.com/)
+  Node ver:   v20.20.2 (default)
   Config:     ~/.wade/config.toml
-  Wade dir:   ~/.wade
 ```
 
 ---
@@ -123,16 +132,16 @@ wade status
 
 ```
 wade (single Go binary — no runtime dependencies)
-     │
-     ├── ~/.wade/versions/    ← Downloaded Node binaries
-     ├── ~/.wade/shims/       ← Symlinks on PATH (set once)
-     ├── ~/.wade/config.toml  ← Your preferences
-     └── ~/.wade/current      ← Active version
+    │
+    ├── ~/.wade/versions/    ← Downloaded Node binaries
+    ├── ~/.wade/shims/       ← Symlinks on PATH (set once)
+    ├── ~/.wade/config.toml  ← User preferences
+    └── ~/.wade/current      ← Active version
 ```
 
 - **Registry switching:** Writes to `npm config`, `yarn config`, and `pnpm config` simultaneously
 - **Version switching:** Updates symlinks in `~/.wade/shims/` — instant, no shell reload
-- **No Node dependency:** Wade runs without Node. Installs Node by downloading pre-built binaries from mirrors
+- **No Node dependency:** Wade runs without Node; installs Node from pre-built binaries on npmmirror.com
 
 ---
 
@@ -141,37 +150,32 @@ wade (single Go binary — no runtime dependencies)
 Wade is built with **Go** and follows **Spec-Driven Development (SDD)**.
 
 ```bash
-# Build
+git clone https://github.com/wadefengx/wade.git
+cd wade
 go build -o wade .
-
-# Test
-go test ./...
-
-# Run
 ./wade status
 ```
 
-### Project Architecture
+### Project Structure
 
 ```
 wade/
-├── AGENTS.md              # AI master context (read this first)
+├── AGENTS.md              # AI master context
 ├── spec/SPEC.md           # Complete specification
 ├── cmd/                   # CLI commands (cobra)
 ├── internal/
-│   ├── config/            # TOML config management
-│   ├── registry/          # Registry switching logic
-│   ├── node/              # Node version management (in progress)
-│   └── platform/          # Cross-platform abstraction
-└── .github/workflows/     # CI/CD
+│   ├── config/            # TOML config
+│   ├── registry/          # Registry switching
+│   └── node/              # Node version management
+└── docs/                  # GitHub Pages site
 ```
 
 ### Roadmap
 
 - [x] **M1: Registry Management** — `registry ls/use/add/del/test`
-- [ ] **M2: Node Version Management** — `node install/use/ls/default/uninstall`
-- [ ] **M3: Cross-Platform Release** — GitHub Actions + Homebrew + Scoop
-- [ ] **M4: Polish** — `status`, shell completions, self-update
+- [x] **M2: Node Version Management** — `node install/use/ls/default/uninstall`
+- [ ] **M3: Release** — GitHub Actions + Homebrew + Scoop + install script
+- [ ] **M4: Polish** — Shell completions, self-update, Windows support
 
 ---
 
