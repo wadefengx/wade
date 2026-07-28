@@ -160,8 +160,8 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println()
 
-	// ── Step 4: PATH & project ──
-	fmt.Println("⚙️  Step 4: PATH & project")
+	// ── Step 4: PATH ──
+	fmt.Println("⚙️  Step 4: PATH")
 	fmt.Println()
 
 	shimDir, _ := node.ShimDir()
@@ -180,19 +180,6 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		fmt.Println("   ✅ PATH already configured")
-	}
-
-	cwd, _ := os.Getwd()
-	fmt.Printf("\n   📁 Current directory: %s\n", cwd)
-	fmt.Print("   Create .wade-version for this project? [Y/n]: ")
-	choice, _ = reader.ReadString('\n')
-	choice = strings.TrimSpace(strings.ToLower(choice))
-	if choice == "" || choice == "y" {
-		current, err := node.CurrentVersion()
-		if err == nil {
-			os.WriteFile(filepath.Join(cwd, ".wade-version"), []byte(current+"\n"), 0644)
-			fmt.Printf("   ✅ Created .wade-version (%s)\n", current)
-		}
 	}
 	fmt.Println()
 
