@@ -2,10 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/wadefengx/wade/internal/config"
+	golang "github.com/wadefengx/wade/internal/go"
+	"github.com/wadefengx/wade/internal/node"
+	"github.com/wadefengx/wade/internal/python"
 	"github.com/wadefengx/wade/internal/registry"
 )
 
@@ -18,28 +22,65 @@ var statusCmd = &cobra.Command{
 			return fmt.Errorf("load config: %w", err)
 		}
 
-		name, url, _ := registry.GetCurrent()
+		regName, regURL, _ := registry.GetCurrent()
 		cfgPath, _ := config.ConfigPath()
 		wadeDir, _ := config.WadeDir()
 
 		fmt.Println("🏄  wade status")
 		fmt.Println("─────────────────────")
-		fmt.Printf("  📦 Registry:      %s → %s\n", name, url)
-		fmt.Printf("  ⚙️  Config:       %s\n", cfgPath)
-		fmt.Printf("  📁 Wade dir:      %s\n", wadeDir)
-		fmt.Printf("  🌐 Node mirror:   %s\n", cfg.NodeMirror)
 
-		if len(cfg.Registries) > 0 {
-			fmt.Printf("  ⭐ Custom regs:   %d\n", len(cfg.Registries))
+		// Node
+		nodeVer, _ := node.CurrentVersion()
+		if nodeVer != "" {
+			fmt.Printf("  🟢 Node:        %s", nodeVer)
+			if cfg.DefaultVersion == nodeVer {
+				fmt.Print(" (default)")
+			}
+			fmt.Println()
+		}
+		fmt.Printf("  📦 Registry:    %s → %s\n", regName, regURL)
+
+		// Go
+		goVer, _ := golang.CurrentVersion()
+		if goVer != "" {
+			fmt.Printf("  🔵 Go:          %s", goVer)
+			if cfg.DefaultGoVersion == goVer {
+				fmt.Print(" (default)")
+			}
+			fmt.Println()
+		}
+		if cfg.GoMirror != "" {
+			label := "custom"
+			for _, m := range python.GoMirrorPresets() {
+				if strings.HasPrefix(cfg.GoMirror, m.URL) {
+					label = m.Name
+					break
+				}
+			}
+			fmt.Printf("  🌐 Go mirror:   %s\n", label)
 		}
 
-		if cfg.DefaultVersion != "" {
-			fmt.Printf("  🟢 Node ver:      %s (default)\n", cfg.DefaultVersion)
+		// Python
+		pythons := python.DetectSystemPython()
+		if len(pythons) > 0 {
+			var versions []string
+			for _, p := range pythons {
+				parts := strings.SplitN(p, " (system:", 2)
+				if len(parts) == 2 {
+					versions = append(versions, strings.TrimSuffix(strings.TrimSpace(parts[1]), ")"))
+				}
+			}
+			if len(versions) > 0 {
+				fmt.Printf("  🐍 Python:      %s\n", strings.Join(versions, ", "))
+			}
 		}
+
+		// Config
+		fmt.Printf("  ⚙️  Config:      %s\n", cfgPath)
+		fmt.Printf("  📁 Wade dir:    %s\n", wadeDir)
 
 		fmt.Println()
-		fmt.Println("  💡 Tip: 'wade registry use taobao' to switch mirrors")
-		fmt.Println("     'wade node install 22' to add a Node version")
+		fmt.Println("  💡 Try: wade -i | wade go ls | wade python registry ls")
 		return nil
 	},
 }

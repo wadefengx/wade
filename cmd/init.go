@@ -1,72 +1,61 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
+	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/wadefengx/wade/internal/config"
+	golang "github.com/wadefengx/wade/internal/go"
 	"github.com/wadefengx/wade/internal/node"
 	"github.com/wadefengx/wade/internal/python"
 	"github.com/wadefengx/wade/internal/registry"
 )
 
 func runInteractiveWizard(cmd *cobra.Command, args []string) error {
-	reader := bufio.NewReader(os.Stdin)
 	autoYes, _ := cmd.Flags().GetBool("yes")
-
-	input := func(prefix string) string {
-		fmt.Print(prefix)
-		if autoYes {
-			fmt.Println()
-			return ""
-		}
-		s, _ := reader.ReadString('\n')
-		return strings.TrimSpace(s)
-	}
-
 	cfg, _ := config.Load()
 
 	fmt.Println("◇  Welcome to Wade!")
 	fmt.Println()
 
 	// ── Step 0: Choose runtimes ──
-	fmt.Println("◇  Which runtimes to configure?")
-	fmt.Println("│  1. Node.js  (recommended for frontend)")
-	fmt.Println("│  2. Go       (recommended for backend/CLI)")
-	fmt.Println("│  3. Python   (recommended for data/scripts)")
-	fmt.Println("│  4. All of the above")
-	choice := input("└  1-4 › ")
-
-	hasNode := choice == "1" || choice == "4"
-	hasGo := choice == "2" || choice == "4"
-	hasPython := choice == "3" || choice == "4"
-
-	// Determine defaults
+	runtimes := []string{}
 	if autoYes {
-		hasNode = true
-		hasGo = true
-		hasPython = true
+		runtimes = []string{"Node.js", "Go", "Python"}
+	} else {
+		prompt := &survey.Select{
+			Message: "Which runtimes to configure?",
+			Options: []string{"Node.js", "Go", "Python", "All of the above"},
+		}
+		survey.AskOne(prompt, &runtimes)
 	}
 
+	hasNode := contains(runtimes, "Node.js") || contains(runtimes, "All of the above")
+	hasGo := contains(runtimes, "Go") || contains(runtimes, "All of the above")
+	hasPython := contains(runtimes, "Python") || contains(runtimes, "All of the above")
 	fmt.Println()
 
-	// ── Node.js configuration ──
+	// ── Node.js ──
 	if hasNode {
 		// Node mirror
-		cfg.NodeMirror = "https://npmmirror.com/mirrors/node/"
-		if !autoYes {
-			fmt.Println("◇  Node.js download source:")
-			fmt.Println("│  1. Mirror (npmmirror.com) — fast in China, recommended")
-			fmt.Println("│  2. Official (nodejs.org)")
-			c := input("└  1-2 › ")
-			if c == "2" {
+		if autoYes {
+			cfg.NodeMirror = "https://npmmirror.com/mirrors/node/"
+		} else {
+			mirrorOpt := ""
+			prompt := &survey.Select{
+				Message: "Node.js download source:",
+				Options: []string{"mirror (npmmirror.com) — fast in China, recommended", "official (nodejs.org)"},
+			}
+			survey.AskOne(prompt, &mirrorOpt)
+			if strings.Contains(mirrorOpt, "official") {
 				cfg.NodeMirror = "https://nodejs.org/dist/"
+			} else {
+				cfg.NodeMirror = "https://npmmirror.com/mirrors/node/"
 			}
 		}
 		config.Save(cfg)
@@ -89,20 +78,30 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 				}
 			}
 		} else {
-			fmt.Println("◇  Node.js version:")
-			recs := []struct{ label, ver string }{{"v22 (LTS) — recommended", "22"}, {"v20 (LTS)", "20"}, {"v18 (LTS)", "18"}}
-			for i, r := range recs {
-				m := ""
-				if alreadyInstalled(installed, r.ver) {
-					m = " [installed]"
-				}
-				fmt.Printf("│  %d. %s%s\n", i+1, r.label, m)
-			}
-			fmt.Println("│  4. Skip")
-			c := input("└  1-4 › ")
-			if idx, _ := strconv.Atoi(c); idx >= 1 && idx <= 3 {
-				ver := recs[idx-1].ver
+			// Check if any LTS is installed
+			allInstalled := true
+			for _, ver := range []string{"22", "20", "18"} {
 				if !alreadyInstalled(installed, ver) {
+					allInstalled = false
+					break
+				}
+			}
+			if !allInstalled || len(installed) == 0 {
+				opts := []string{"v22 (LTS) — recommended", "v20 (LTS)", "v18 (LTS)", "Skip"}
+				verOpt := ""
+				prompt := &survey.Select{Message: "Node.js version:", Options: opts}
+				survey.AskOne(prompt, &verOpt)
+
+				ver := ""
+				switch {
+				case strings.HasPrefix(verOpt, "v22"):
+					ver = "22"
+				case strings.HasPrefix(verOpt, "v20"):
+					ver = "20"
+				case strings.HasPrefix(verOpt, "v18"):
+					ver = "18"
+				}
+				if ver != "" && !alreadyInstalled(installed, ver) {
 					if resolved, err := node.ResolveVersion(ver, cfg.NodeMirror); err == nil {
 						fmt.Printf("◇  Installing Node %s...\n", ver)
 						if err := node.Install(resolved, cfg.NodeMirror); err == nil {
@@ -111,41 +110,28 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 							node.UseVersion(resolved)
 						}
 					}
-				} else {
-					for _, v := range installed {
-						if strings.HasPrefix(v, "v"+ver) {
-							node.UseVersion(v)
-							break
-						}
-					}
 				}
 			}
 		}
 		fmt.Println()
 
 		// Registry mirror
-		cfg.CurrentRegistry = "taobao"
-		if !autoYes {
-			results := registry.Test(toRegistries(nil))
-			fastest := ""
-			if len(results) > 0 && results[0].Error == "" {
-				fastest = results[0].Name
-			}
+		if autoYes {
+			cfg.CurrentRegistry = "taobao"
+		} else {
 			allRegs := registry.All(toRegistries(nil))
-			fmt.Println("◇  Registry mirror (npm/yarn/pnpm):")
+			opts := make([]string, len(allRegs))
 			for i, r := range allRegs {
-				if i >= 5 {
+				opts[i] = fmt.Sprintf("%s (%s)", r.Name, r.URL)
+			}
+			regOpt := ""
+			prompt := &survey.Select{Message: "Registry mirror (npm/yarn/pnpm):", Options: opts}
+			survey.AskOne(prompt, &regOpt)
+			for _, r := range allRegs {
+				if strings.HasPrefix(regOpt, r.Name+" ") {
+					cfg.CurrentRegistry = r.Name
 					break
 				}
-				s := ""
-				if r.Name == fastest {
-					s = " ★ fastest"
-				}
-				fmt.Printf("│  %d. %s%s\n", i+1, r.Name, s)
-			}
-			c := input("└  1-5 › ")
-			if idx, _ := strconv.Atoi(c); idx >= 1 && idx <= 5 {
-				cfg.CurrentRegistry = allRegs[idx-1].Name
 			}
 		}
 		config.Save(cfg)
@@ -153,67 +139,81 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 	}
 
-	// ── Go configuration ──
+	// ── Go ──
 	if hasGo {
-		cfg.GoMirror = "https://golang.google.cn/dl/"
-		config.Save(cfg)
-		if !autoYes {
-			fmt.Println("◇  Go download source:")
-			for i, m := range python.GoMirrorPresets() {
-				mark := ""
-				if m.Name == "google-cn" {
-					mark = " — recommended in China"
-				}
-				fmt.Printf("│  %d. %s%s\n", i+1, m.Name, mark)
-			}
-			c := input("└  1-4 › ")
-			if idx, _ := strconv.Atoi(c); idx >= 1 && idx <= 4 {
-				cfg.GoMirror = python.GoMirrorPresets()[idx-1].URL
-				config.Save(cfg)
-			}
-		}
-		fmt.Println("🌐 Go mirror: google-cn ✓")
-
-		// Go proxy
-		if !autoYes {
-			fmt.Println("◇  Go proxy (GOPROXY):")
-			for i, p := range python.GoProxyPresets() {
-				mark := ""
-				if p.Name == "goproxy.cn" {
-					mark = " — recommended in China"
-				}
-				fmt.Printf("│  %d. %s%s\n", i+1, p.Name, mark)
-			}
-			c := input("└  1-3 › ")
-			if idx, _ := strconv.Atoi(c); idx >= 1 && idx <= 3 {
-				python.UseGoProxy(python.GoProxyPresets()[idx-1].Name)
-			}
-		} else {
+		if autoYes {
+			cfg.GoMirror = "https://golang.google.cn/dl/"
+			config.Save(cfg)
 			python.UseGoProxy("goproxy.cn")
+		} else {
+			// Go mirror
+			mirrors := python.GoMirrorPresets()
+			opts := make([]string, len(mirrors))
+			for i, m := range mirrors {
+				label := m.Name
+				if m.Name == "google-cn" {
+					label += " — recommended in China"
+				}
+				opts[i] = label
+			}
+			mirrorOpt := ""
+			prompt := &survey.Select{Message: "Go download source:", Options: opts}
+			survey.AskOne(prompt, &mirrorOpt)
+			for _, m := range mirrors {
+				if strings.HasPrefix(mirrorOpt, m.Name) {
+					cfg.GoMirror = m.URL
+					break
+				}
+			}
+			config.Save(cfg)
+
+			// Go proxy
+			proxies := python.GoProxyPresets()
+			popts := make([]string, len(proxies))
+			for i, p := range proxies {
+				label := p.Name
+				if p.Name == "goproxy.cn" {
+					label += " — recommended in China"
+				}
+				popts[i] = label
+			}
+			proxyOpt := ""
+			pprompt := &survey.Select{Message: "Go proxy (GOPROXY):", Options: popts}
+			survey.AskOne(pprompt, &proxyOpt)
+			for _, p := range proxies {
+				if strings.HasPrefix(proxyOpt, p.Name) {
+					python.UseGoProxy(p.Name)
+					break
+				}
+			}
 		}
-		fmt.Println("🌐 Go proxy: goproxy.cn ✓")
 		fmt.Println()
 	}
 
-	// ── Python configuration ──
+	// ── Python ──
 	if hasPython {
-		if !autoYes {
-			fmt.Println("◇  Python pip registry:")
-			for i, m := range python.PipPresets() {
-				mark := ""
-				if m.Name == "tsinghua" {
-					mark = " — recommended in China"
-				}
-				fmt.Printf("│  %d. %s%s\n", i+1, m.Name, mark)
-			}
-			c := input("└  1-6 › ")
-			if idx, _ := strconv.Atoi(c); idx >= 1 && idx <= 6 {
-				python.UsePipMirror(python.PipPresets()[idx-1].Name)
-			}
-		} else {
+		if autoYes {
 			python.UsePipMirror("tsinghua")
+		} else {
+			mirrors := python.PipPresets()
+			opts := make([]string, len(mirrors))
+			for i, m := range mirrors {
+				label := m.Name
+				if m.Name == "tsinghua" {
+					label += " — recommended in China"
+				}
+				opts[i] = label
+			}
+			mirrorOpt := ""
+			prompt := &survey.Select{Message: "Python pip registry:", Options: opts}
+			survey.AskOne(prompt, &mirrorOpt)
+			for _, m := range mirrors {
+				if strings.HasPrefix(mirrorOpt, m.Name) {
+					python.UsePipMirror(m.Name)
+					break
+				}
+			}
 		}
-		fmt.Println("🐍 pip registry: tsinghua ✓")
 		fmt.Println()
 	}
 
@@ -223,9 +223,15 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 		shell := detectShell()
 		rcFile := shellConfigPath(shell)
 		if rcFile != "" {
-			fmt.Printf("◇  Add ~/.wade/shims to %s?\n", filepath.Base(rcFile))
-			choice = input("└  Y/n › ")
-			if choice == "" || strings.ToLower(choice) == "y" {
+			addPath := true
+			if !autoYes {
+				prompt := &survey.Confirm{
+					Message: fmt.Sprintf("Add ~/.wade/shims to %s?", filepath.Base(rcFile)),
+					Default: true,
+				}
+				survey.AskOne(prompt, &addPath)
+			}
+			if addPath {
 				appendToFile(rcFile, fmt.Sprintf("\n# wade — runtime manager\nexport PATH=\"%s:$PATH\"\n", shimDir))
 				fmt.Printf("✔  Added to %s\n", rcFile)
 			}
@@ -241,13 +247,23 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 	curReg, curURL, _ := registry.GetCurrent()
 	fmt.Printf("   Node:      %s\n", cur)
 	fmt.Printf("   Registry:  %s → %s\n", curReg, curURL)
-	fmt.Printf("   Go mirror: %s\n", cfg.GoMirror)
-	fmt.Println("   Go proxy:  goproxy.cn")
-	fmt.Println("   pip:       tsinghua")
+	goVer, _ := golang.CurrentVersion()
+	if goVer != "" {
+		fmt.Printf("   Go:        %s\n", goVer)
+	}
 	fmt.Println()
 	fmt.Println("   Quick: wade status | wade node ls | wade go ls | wade python ls")
 	fmt.Println()
 	return nil
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
 
 func alreadyInstalled(versions []string, prefix string) bool {
@@ -258,3 +274,5 @@ func alreadyInstalled(versions []string, prefix string) bool {
 	}
 	return false
 }
+
+var _ = os.Stdout
