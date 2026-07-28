@@ -128,6 +128,29 @@ wade registry test          # Speed test
 
 Built-in: `npm`, `taobao`, `tencent`, `huawei`, `cnpm`
 
+### `wade go` — Go version management
+
+```bash
+wade go install 1.23        # Install Go 1.23
+wade go use 1.23            # Switch to Go 1.23
+wade go ls                  # List installed versions
+wade go ls-remote           # Browse available versions
+wade go mirror ls           # List download mirrors
+wade go mirror use google-cn  # Switch mirror (fast in China)
+wade go mirror test         # Test mirror latency
+wade go proxy ls            # List GOPROXY options
+wade go proxy use goproxy.cn  # Switch proxy (fast in China)
+```
+
+### `wade python` — Python pip registry
+
+```bash
+wade python ls              # Detect system Python versions
+wade python registry ls     # List pip mirrors
+wade python registry use tsinghua  # Switch to Tsinghua mirror
+wade python registry use aliyun    # Switch to Aliyun mirror
+```
+
 ---
 
 ## Development

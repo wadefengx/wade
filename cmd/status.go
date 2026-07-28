@@ -48,6 +48,11 @@ var statusCmd = &cobra.Command{
 				fmt.Print(" (default)")
 			}
 			fmt.Println()
+		} else {
+			// Show system Go if not managed by wade
+			if sysGo := python.DetectSystemGo(); sysGo != "" {
+				fmt.Printf("  🔵 Go:          %s (system)\n", sysGo)
+			}
 		}
 		if cfg.GoMirror != "" {
 			label := "custom"
