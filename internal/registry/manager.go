@@ -22,23 +22,37 @@ func Use(name string) error {
 	}
 
 	var errs []string
+	var successCount int
 	for _, pm := range []string{"npm", "yarn", "pnpm"} {
 		if !commandExists(pm) {
 			continue
 		}
 		cmd := exec.Command(pm, "config", "set", "registry", reg.URL)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			errs = append(errs, fmt.Sprintf("%s: %s (%v)", pm, strings.TrimSpace(string(out)), err))
+			// pnpm v11 requires Node >= 22, so it might fail on older Node.
+			// Report the error but don't block the whole operation.
+			errs = append(errs, fmt.Sprintf("  ⚠ %s: %s", pm, strings.TrimSpace(firstLine(string(out)))))
+		} else {
+			successCount++
 		}
 	}
 
-	if len(errs) > 0 {
-		return fmt.Errorf("failed to set registry for some package managers:\n%s", strings.Join(errs, "\n"))
+	if successCount == 0 && len(errs) > 0 {
+		return fmt.Errorf("failed to set registry for any package manager:\n%s", strings.Join(errs, "\n"))
 	}
 
+	// Save config even if some PMs failed (e.g., pnpm on older Node)
 	cfg.CurrentRegistry = name
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("save config: %w", err)
+	}
+
+	// Report warnings for failed PMs
+	if len(errs) > 0 {
+		fmt.Fprintln(os.Stderr, "Warnings:")
+		for _, e := range errs {
+			fmt.Fprintln(os.Stderr, e)
+		}
 	}
 
 	return nil
@@ -142,4 +156,12 @@ func EnsureWadeDir() error {
 		return err
 	}
 	return os.MkdirAll(dir, 0755)
+}
+
+// firstLine returns the first line of a string, or the whole string if single line
+func firstLine(s string) string {
+	if idx := strings.IndexByte(s, '\n'); idx >= 0 {
+		return s[:idx]
+	}
+	return s
 }
