@@ -38,7 +38,7 @@ var nodeInstallCmd = &cobra.Command{
 			return fmt.Errorf("resolve version: %w", err)
 		}
 
-		fmt.Printf("Resolved %s → %s\n", raw, resolved)
+		fmt.Printf("📥 Resolved %s → %s\n", raw, resolved)
 		return node.Install(resolved, cfg.NodeMirror)
 	},
 }
@@ -71,7 +71,7 @@ var nodeUseCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Now using %s\n", matched)
+		fmt.Printf("🟢 Now using %s\n", matched)
 		return nil
 	},
 }
@@ -89,12 +89,12 @@ var nodeLsCmd = &cobra.Command{
 		}
 
 		if len(versions) == 0 {
-			fmt.Println("No Node.js versions installed.")
+			fmt.Println("📭 No Node.js versions installed.")
 			fmt.Println("Run 'wade node install <version>' to install one.")
 			return nil
 		}
 
-		fmt.Println("Installed Node versions:")
+		fmt.Println("📦 Installed Node versions:")
 		for _, v := range versions {
 			markers := ""
 			if v == current {

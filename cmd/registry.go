@@ -63,7 +63,7 @@ var registryUseCmd = &cobra.Command{
 		cfg, _ := config.Load()
 		r, _ := registry.Find(cfg.CurrentRegistry, toRegistries(cfg.Registries))
 		if r != nil {
-			fmt.Printf("Switched to %s (%s)\n", r.Name, r.URL)
+			fmt.Printf("🔄 Switched to %s (%s)\n", r.Name, r.URL)
 		}
 		return nil
 	},
@@ -78,7 +78,7 @@ var registryAddCmd = &cobra.Command{
 		if err := registry.Add(name, url); err != nil {
 			return err
 		}
-		fmt.Printf("Added custom registry %q → %s\n", name, url)
+		fmt.Printf("⭐ Added custom registry %q → %s\n", name, url)
 		return nil
 	},
 }
@@ -92,7 +92,7 @@ var registryDelCmd = &cobra.Command{
 		if err := registry.Remove(name); err != nil {
 			return err
 		}
-		fmt.Printf("Deleted custom registry %q\n", name)
+		fmt.Printf("🗑️  Deleted custom registry %q\n", name)
 		return nil
 	},
 }
@@ -106,7 +106,7 @@ var registryTestCmd = &cobra.Command{
 			return fmt.Errorf("load config: %w", err)
 		}
 
-		fmt.Println("Testing registry latency...")
+		fmt.Println("⚡ Testing registry latency...")
 		results := registry.Test(toRegistries(cfg.Registries))
 
 		headers := []string{"Registry", "URL", "Latency"}
