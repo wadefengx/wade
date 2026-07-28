@@ -156,6 +156,16 @@ Configurable via `wade node mirror <url>` or `~/.wade/config.toml`.
 ## 6. CLI Reference
 
 ```bash
+# Setup
+wade -i                       # Interactive setup wizard (4 steps)
+wade init                     # Same as wade -i
+wade init -y                  # Non-interactive, use defaults
+
+# Node download source
+wade node mirror              # Show current source
+wade node mirror mirror       # Use npmmirror.com (fast in China)
+wade node mirror official     # Use official nodejs.org
+
 # Node version management
 wade node install 18          # Install Node 18 (latest 18.x)
 wade node install 20.12.0    # Install specific version
