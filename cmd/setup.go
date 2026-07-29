@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -189,6 +188,3 @@ func init() {
 	setupCmd.Flags().BoolVar(&setupAuto, "auto", false, "Skip all prompts, auto-configure")
 	setupCmd.Flags().BoolVar(&setupDryRun, "dry-run", false, "Show what would be done without doing it")
 }
-
-// Ensure exec is imported
-var _ = exec.Command

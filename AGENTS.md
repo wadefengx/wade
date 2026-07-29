@@ -250,10 +250,14 @@ wade version                # Print wade version
 
 ## 11. Milestone Roadmap
 
-| Milestone | Content | Depends on |
-|-----------|---------|------------|
-| **M0: Skeleton** | Go module, CLI framework, AGENTS.md, SPEC.md | — |
-| **M1: Registry** | `wade registry ls/use/add/del/test` | M0 |
-| **M2: Node** | `wade node install/use/ls/default/uninstall` | M0 |
-| **M3: Release** | GitHub Actions, Homebrew, Scoop, install script | M1+M2 |
-| **M4: Polish** | `wade status`, shell completions, self-update | M3 |
+| Milestone | Content | Status |
+|-----------|---------|--------|
+| **M0: Skeleton** | Go module, cobra CLI, AGENTS.md, SPEC.md | ✅ |
+| **M1: Registry** | `wade registry ls/use/add/del/test` | ✅ |
+| **M2: Node** | `wade node install/use/ls/default/uninstall/ls-remote` | ✅ |
+| **M3: Release** | GitHub Actions, Homebrew, Scoop, install script | ✅ |
+| **M4: Polish** | `wade status`, shell completions, self-update | ✅ |
+| **M5: Init Wizard** | Multi-runtime `wade -i` / `wade init`, survey UX | ✅ |
+| **M6: Multi-Runtime** | Go version/mirror/proxy, Python pip mirror | ✅ |
+| **M7: Quality** | Unit tests, integration tests, `wade setup --auto` | 🔜 |
+| **M8: Distribution** | Create Homebrew tap, Scoop bucket, publish docs site | 🔜 |
