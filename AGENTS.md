@@ -259,5 +259,5 @@ wade version                # Print wade version
 | **M4: Polish** | `wade status`, shell completions, self-update | ✅ |
 | **M5: Init Wizard** | Multi-runtime `wade -i` / `wade init`, survey UX | ✅ |
 | **M6: Multi-Runtime** | Go version/mirror/proxy, Python pip mirror | ✅ |
-| **M7: Quality** | Unit tests, integration tests, `wade setup --auto` | 🔜 |
+| **M7: Quality** | Unit tests, integration tests, `wade setup --auto` | ✅ |
 | **M8: Distribution** | Create Homebrew tap, Scoop bucket, publish docs site | 🔜 |
