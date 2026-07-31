@@ -124,7 +124,8 @@
     section h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 12px; }
     section p { font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; max-width: 600px; }
 
-    .features, .install-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .install-options { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 720px; }
     .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
     .card:hover { border-color: var(--border-hover); }
     .card h3 { font-size: 15px; margin-bottom: 8px; }
@@ -133,12 +134,12 @@
     .install-card { display: flex; flex-direction: column; }
     .install-card h3 { font-size: 17px; }
     .install-card > p { min-height: 38px; margin-bottom: 16px; }
-    .code-block { position: relative; background: var(--bg-terminal); border: 1px solid var(--border); border-radius: 10px; padding: 16px 52px 16px 16px; overflow-x: auto; }
+    .code-block { position: relative; background: var(--bg-terminal); border: 1px solid var(--border); border-radius: 10px; padding: 16px 64px 16px 16px; overflow-x: auto; }
     .code-block code { display: block; font-family: var(--font-mono); font-size: 12px; line-height: 1.55; color: var(--text-secondary); white-space: pre; }
     .copy-button {
-      position: absolute; top: 8px; right: 8px; background: var(--frosted-button); border: 1px solid var(--border-strong);
+      position: absolute; top: 8px; right: 8px; background: var(--bg-terminal); border: 1px solid var(--border-strong);
       border-radius: 7px; color: var(--text-secondary); cursor: pointer; font: inherit; font-size: 12px; padding: 5px 8px;
-      opacity: 0.72; transition: opacity 150ms ease, border-color 150ms ease;
+      opacity: 0.9; transition: opacity 150ms ease, border-color 150ms ease;
     }
     .code-block:hover .copy-button, .copy-button:focus { opacity: 1; border-color: var(--border-hover); outline: none; }
     .install-note { margin: 24px 0 0; }
