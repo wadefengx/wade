@@ -11,9 +11,9 @@
     --surface-canvas: #0a0a0a;
     --surface-card: #1a1a1a;
     --surface-card-alt: #1d1d1d;
-    --accent: #8b5cf6;
-    --accent-hover: #a78bfa;
-    --accent-subtle: rgba(139, 92, 246, 0.12);
+    --accent: #024ad8;
+    --accent-hover: #2563eb;
+    --accent-subtle: rgba(2, 74, 216, 0.12);
     --text-primary: #f5f5f7;
     --text-secondary: #a1a1a6;
     --text-tertiary: #6e6e73;
@@ -52,10 +52,10 @@
   .nav-gh { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); }
 
   .hero { max-width: 960px; margin: 0 auto; padding: 100px 24px 80px; text-align: center; }
-  .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-subtle); color: var(--accent); padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 32px; border: 1px solid rgba(139, 92, 246, 0.25); }
+  .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-subtle); color: var(--accent); padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 32px; border: 1px solid rgba(2, 74, 216, 0.25); }
   .hero-badge span { font-size: 11px; color: var(--green); background: var(--green-subtle); padding: 1px 6px; border-radius: 8px; }
   .hero h1 { font-size: 48px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin-bottom: 24px; }
-  .hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), #78a7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .hero p { font-size: 19px; color: var(--text-secondary); max-width: 560px; margin: 0 auto 40px; }
   .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
@@ -92,6 +92,17 @@
   .code-block code { font-family: var(--font-mono); font-size: 13px; line-height: 1.7; color: var(--text-secondary); }
   .code-block .hlg { color: var(--green); }
 
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border-hairline); border-radius: 14px; background: var(--surface-card); }
+  table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+  th, td { padding: 14px 16px; border-bottom: 1px solid var(--border-hairline); }
+  th { color: var(--text-secondary); font-weight: 500; background: rgba(255, 255, 255, 0.02); }
+  td { color: var(--text-tertiary); }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { color: var(--text-primary); font-weight: 500; }
+  code { font-family: var(--font-mono); font-size: 0.9em; color: var(--text-secondary); }
+  .status-done { color: var(--green); }
+  .status-progress { color: var(--accent); }
+
   footer { border-top: 1px solid var(--border-hairline); padding: 32px 24px; text-align: center; color: var(--text-tertiary); font-size: 13px; }
   footer a { color: var(--text-secondary); text-decoration: none; }
 
@@ -110,6 +121,7 @@
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#install">Install</a>
+      <a href="#commands">Commands</a>
       <a href="https://github.com/wadefengx/wade" class="nav-gh">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
         GitHub
@@ -120,7 +132,7 @@
 
 <main>
   <div class="hero">
-    <div class="hero-badge">🚀 Node.js · Go · Python <span>v0.2.0</span></div>
+    <div class="hero-badge">🚀 Node.js · Go · Python <span>single binary</span></div>
     <h1>One tool to manage<br>your <em>runtimes & registries</em></h1>
     <p>Wade replaces nvm + cgr/nrm + gvm + pyenv. Single binary, install once, works everywhere.</p>
     <div class="hero-actions">
@@ -135,7 +147,7 @@
       <span class="terminal-title">wade -i</span>
     </div>
     <div class="terminal-body"><pre>
-<span class="comment"># One command to set up everything</span>
+<span class="comment"># Choose runtimes, mirrors, and PATH setup interactively</span>
 <span class="prompt">$</span> <span class="cmd">wade -i</span>
 <span class="output">◇  Which runtimes to configure?</span>
 <span class="output">│  1. Node.js</span>
@@ -143,42 +155,37 @@
 <span class="output">│  3. Python</span>
 <span class="output">│  4. All of the above</span>
 
-<span class="comment"># Or auto-configure with China-friendly defaults</span>
+<span class="comment"># Or configure all runtimes with defaults, without prompts</span>
 <span class="prompt">$</span> <span class="cmd">wade init -y</span>
 <span class="output">🌐 Go mirror: google-cn ✓</span>
 <span class="output">🌐 Go proxy: goproxy.cn ✓</span>
 <span class="output">🐍 pip registry: tsinghua ✓</span>
 
-<span class="comment"># Node.js</span>
+<span class="comment"># Install and switch Node.js or Go versions</span>
 <span class="prompt">$</span> <span class="cmd">wade node install 20</span>
-<span class="output">📥 Downloading node-v20.20.2-darwin-arm64.tar.gz...</span>
-<span class="output">Node v20.20.2 installed ✓</span>
+<span class="output">Node v20.x installed ✓</span>
 
 <span class="comment"># Go</span>
 <span class="prompt">$</span> <span class="cmd">wade go install 1.23</span>
-<span class="output">Go 1.23 installed ✓</span>
+<span class="output">Go 1.23.x installed ✓</span>
 </pre></div>
   </div>
 
   <section id="features">
     <h2>Why Wade?</h2>
     <div class="features">
-      <div class="card"><h3>🎯 Node.js</h3><p>Install, switch, manage versions. Switch npm/yarn/pnpm registries. 7 mirrors, 7 mirrors.</p></div>
-              <div class="card"><h3>🦫 Go</h3><p>Install, switch versions. Switch download mirrors and GOPROXY. 4 mirrors, 3 proxies.</p></div>
-              <div class="card"><h3>🐍 Python</h3><p>Detect system Python. Switch pip registries. 6 mirrors.</p></div>
-              <div class="card"><h3>⚡ One binary</h3><p>Single Go binary. No runtime dependencies. Install once, use forever.</p></div>
-              <div class="card"><h3>🇨🇳 China-friendly</h3><p>Default mirrors for Node, Go, pip. Built-in taobao, tsinghua, aliyun, huawei, tencent.</p></div>
-              <div class="card"><h3>🔧 Setup wizard</h3><p>wade -i or wade init -y. Arrow-key navigation. Auto-detect shell, configure PATH, install runtimes.</p></div>
+      <div class="card"><h3>🎯 Node.js</h3><p>Install, switch, default, and remove Node versions. Set the npm, yarn, and pnpm registry together.</p></div>
+      <div class="card"><h3>🦫 Go</h3><p>Install and switch Go versions, then select download mirrors and a GOPROXY for module downloads.</p></div>
+      <div class="card"><h3>🐍 Python</h3><p>Discover system Python versions and switch pip package indexes without managing another runtime install.</p></div>
+      <div class="card"><h3>⚡ One binary</h3><p>A standalone Go binary with no Node, Go, or Python dependency. Install once and use everywhere.</p></div>
+      <div class="card"><h3>🌐 Mirror-aware</h3><p>Choose official or regional Node and Go download sources, plus built-in npm and pip registry presets.</p></div>
+      <div class="card"><h3>🔧 Guided setup</h3><p>Use <code>wade -i</code> for the interactive wizard or <code>wade init -y</code> for non-interactive defaults.</p></div>
     </div>
   </section>
 
   <section id="install">
     <h2>Installation</h2>
     <div class="code-block"><code>
-<span class="hlg"># Pre-built binary (recommended)</span>
-tar xzf wade-darwin-arm64.tar.gz && sudo mv wade /usr/local/bin/
-<span class="hlg">wade -i</span>
-
 <span class="hlg"># Homebrew (macOS)</span>
 brew install wadefengx/tap/wade && wade -i
 
@@ -186,10 +193,53 @@ brew install wadefengx/tap/wade && wade -i
 scoop bucket add wade https://github.com/wadefengx/scoop-wade
 scoop install wade && wade -i
 
-<span class="hlg"># From source</span>
-git clone https://github.com/wadefengx/wade.git
-cd wade && go build -o /usr/local/bin/wade . && wade -i
+<span class="hlg"># curl installer (macOS / Linux)</span>
+curl -fsSL https://github.com/wadefengx/wade/releases/latest/download/install.sh | bash
+wade -i
     </code></div>
+    <p>Homebrew becomes available after the <code>wadefengx/tap</code> tap is published. The Scoop manifest lives in the <code>wadefengx/scoop-wade</code> bucket.</p>
+  </section>
+
+  <section id="commands">
+    <h2>Command cheatsheet</h2>
+    <p>Start with the wizard, then use the focused commands below to manage versions, mirrors, registries, and shell integration.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Area</th><th>Command</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>Setup</td><td><code>wade -i</code> / <code>wade init -y</code></td><td>Run the interactive wizard or configure defaults without prompts.</td></tr>
+          <tr><td>Shell</td><td><code>wade setup --auto</code></td><td>Configure the shims directory on PATH without prompts.</td></tr>
+          <tr><td>Status</td><td><code>wade status</code></td><td>Show the current Node version, registry, and shim health.</td></tr>
+          <tr><td>Node</td><td><code>wade node install 20</code></td><td>Install the latest Node 20 release; use <code>use</code>, <code>ls</code>, <code>ls-remote</code>, <code>default</code>, <code>uninstall</code>, or <code>current</code> as needed.</td></tr>
+          <tr><td>Node mirror</td><td><code>wade node mirror mirror</code></td><td>Use npmmirror.com; run <code>wade node mirror official</code> for nodejs.org or <code>wade node mirror</code> to inspect the source.</td></tr>
+          <tr><td>npm registry</td><td><code>wade registry use taobao</code></td><td>Switch npm, yarn, and pnpm together. Use <code>ls</code>, <code>add</code>, <code>del</code>, and <code>test</code> to manage registries.</td></tr>
+          <tr><td>Go</td><td><code>wade go install 1.23</code></td><td>Install Go, then use <code>wade go use 1.23</code>, <code>ls</code>, or <code>ls-remote</code> to manage versions.</td></tr>
+          <tr><td>Go network</td><td><code>wade go mirror use google-cn</code></td><td>Select a Go download mirror; use <code>mirror ls</code>, <code>mirror test</code>, <code>proxy ls</code>, and <code>proxy use goproxy.cn</code> for GOPROXY.</td></tr>
+          <tr><td>Python</td><td><code>wade python ls</code></td><td>Detect system Python versions. Switch pip indexes with <code>wade python registry use tsinghua</code> or <code>aliyun</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <h2>Project status</h2>
+    <p>Wade’s core runtime, mirror, setup, and quality milestones are complete. Distribution is the active milestone.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Milestone</th><th>Scope</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>M0</td><td>Project skeleton</td><td class="status-done">Done</td></tr>
+          <tr><td>M1</td><td>npm registry management</td><td class="status-done">Done</td></tr>
+          <tr><td>M2</td><td>Node version management</td><td class="status-done">Done</td></tr>
+          <tr><td>M3</td><td>Release automation</td><td class="status-done">Done</td></tr>
+          <tr><td>M4</td><td>Status, shell completions, and self-update</td><td class="status-done">Done</td></tr>
+          <tr><td>M5</td><td>Multi-runtime init wizard</td><td class="status-done">Done</td></tr>
+          <tr><td>M6</td><td>Go versions, Go mirrors/GOPROXY, and Python pip mirrors</td><td class="status-done">Done</td></tr>
+          <tr><td>M7</td><td>Unit and integration quality work; <code>wade setup --auto</code></td><td class="status-done">Done</td></tr>
+          <tr><td>M8</td><td>Homebrew tap, Scoop bucket, and documentation site distribution</td><td class="status-progress">In progress</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 </main>
 

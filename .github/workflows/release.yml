@@ -41,7 +41,7 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         run: |
-          go build -ldflags="-s -w" -o wade${{ matrix.os == 'windows' && '.exe' || '' }} .
+          go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o wade${{ matrix.os == 'windows' && '.exe' || '' }} .
 
       - name: Package (tar.gz)
         if: matrix.ext == 'tar.gz'
@@ -78,3 +78,54 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-tap:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout templates
+        uses: actions/checkout@v4
+
+      - name: Download checksums
+        uses: actions/download-artifact@v4
+
+      - name: Update Homebrew and Scoop manifests
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          version="${RELEASE_TAG#v}"
+          darwin_amd64_sha="$(awk '{print $1}' wade-darwin-amd64/wade-darwin-amd64.sha256)"
+          darwin_arm64_sha="$(awk '{print $1}' wade-darwin-arm64/wade-darwin-arm64.sha256)"
+          linux_amd64_sha="$(awk '{print $1}' wade-linux-amd64/wade-linux-amd64.sha256)"
+          windows_amd64_sha="$(awk '{print $1}' wade-windows-amd64/wade-windows-amd64.sha256)"
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/wadefengx/homebrew-tap.git" homebrew-tap
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/wadefengx/scoop-wade.git" scoop-wade
+
+          sed \
+            -e "s|\${VERSION}|${version}|g" \
+            -e "s|\${SHA_DARWIN_AMD64}|${darwin_amd64_sha}|g" \
+            -e "s|\${SHA_DARWIN_ARM64}|${darwin_arm64_sha}|g" \
+            -e "s|\${SHA_LINUX_AMD64}|${linux_amd64_sha}|g" \
+            scripts/wade.rb > homebrew-tap/wade.rb
+          sed \
+            -e "s|\${VERSION}|${version}|g" \
+            -e "s|\${SHA_WINDOWS_AMD64}|${windows_amd64_sha}|g" \
+            scripts/wade.json > scoop-wade/wade.json
+
+          if ! git -C homebrew-tap diff --quiet; then
+            git -C homebrew-tap add wade.rb
+            git -C homebrew-tap commit -m "chore: update wade ${version}"
+            git -C homebrew-tap push origin main
+          fi
+
+          if ! git -C scoop-wade diff --quiet; then
+            git -C scoop-wade add wade.json
+            git -C scoop-wade commit -m "chore: update wade ${version}"
+            git -C scoop-wade push origin main
+          fi

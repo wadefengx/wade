@@ -1,18 +1,19 @@
 {
-  "version": "${VERSION}",
+  "version": "0.2.0",
   "description": "All-in-one Node.js version & npm/yarn/pnpm registry manager",
   "homepage": "https://github.com/wadefengx/wade",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/wadefengx/wade/releases/download/v${VERSION}/wade-windows-amd64.zip",
-      "hash": "${SHA_WINDOWS_AMD64}",
+      "url": "https://github.com/wadefengx/wade/releases/download/v0.2.0/wade-windows-amd64.zip",
+      "hash": "8f21b68c8efbf16c5f9332239214462bcfc58c6e950b494bcf23b6183be98248",
       "bin": "wade.exe"
     }
   },
   "post_install": [
     "wade.exe setup"
   ],
+  "notes": "Add \"$env:USERPROFILE\\.wade\\shims\" to PATH to enable Wade-managed Node.js shims.",
   "checkver": {
     "github": "https://github.com/wadefengx/wade"
   },
