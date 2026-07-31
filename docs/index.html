@@ -1,251 +1,441 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wade — All-in-one runtime manager</title>
-<meta name="description" content="Wade manages Node.js, Go, and Python versions and registries. Single binary, install once, works everywhere.">
-<style>
-  :root {
-    --surface-black: #000000;
-    --surface-canvas: #0a0a0a;
-    --surface-card: #1a1a1a;
-    --surface-card-alt: #1d1d1d;
-    --accent: #024ad8;
-    --accent-hover: #2563eb;
-    --accent-subtle: rgba(2, 74, 216, 0.12);
-    --text-primary: #f5f5f7;
-    --text-secondary: #a1a1a6;
-    --text-tertiary: #6e6e73;
-    --border-hairline: rgba(255, 255, 255, 0.06);
-    --border-subtle: rgba(255, 255, 255, 0.10);
-    --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
-    --font-mono: 'SF Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
-    --green: #30d158;
-    --green-subtle: rgba(48, 209, 88, 0.12);
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wade — All-in-one runtime manager</title>
+  <meta name="description" content="Wade manages Node.js, Go, and Python versions and registries. Single binary, install once, works everywhere.">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --bg-terminal: #000000;
+      --bg-card: #1a1a1a;
+      --bg-elevated: #1d1d1d;
+      --text: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      --accent: #024ad8;
+      --accent-hover: #2563eb;
+      --accent-subtle: rgba(2, 74, 216, 0.12);
+      --accent-border: rgba(2, 74, 216, 0.25);
+      --green: #30d158;
+      --green-subtle: rgba(48, 209, 88, 0.12);
+      --border: rgba(255, 255, 255, 0.06);
+      --border-strong: rgba(255, 255, 255, 0.10);
+      --border-hover: rgba(255, 255, 255, 0.22);
+      --frosted-nav: rgba(10, 10, 10, 0.75);
+      --frosted-button: rgba(255, 255, 255, 0.06);
+      --table-heading: rgba(255, 255, 255, 0.02);
+      --gradient-end: #78a7ff;
+      --terminal-red: #ff5f57;
+      --terminal-yellow: #febc2e;
+      --terminal-green: #28c840;
+      --white: #ffffff;
+      --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+      --font-mono: "SF Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+    }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: var(--font-system);
-    background: var(--surface-canvas);
-    color: var(--text-primary);
-    line-height: 1.47;
-    -webkit-font-smoothing: antialiased;
-  }
+    [data-theme="light"] {
+      --bg: #f5f5f7;
+      --bg-terminal: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.78);
+      --bg-elevated: rgba(255, 255, 255, 0.92);
+      --text: #1d1d1f;
+      --text-secondary: #515154;
+      --text-tertiary: #6e6e73;
+      --accent: #024ad8;
+      --accent-hover: #003db5;
+      --accent-subtle: rgba(2, 74, 216, 0.10);
+      --accent-border: rgba(2, 74, 216, 0.22);
+      --green: #16803a;
+      --green-subtle: rgba(22, 128, 58, 0.10);
+      --border: rgba(0, 0, 0, 0.08);
+      --border-strong: rgba(0, 0, 0, 0.14);
+      --border-hover: rgba(0, 0, 0, 0.24);
+      --frosted-nav: rgba(245, 245, 247, 0.78);
+      --frosted-button: rgba(0, 0, 0, 0.04);
+      --table-heading: rgba(0, 0, 0, 0.025);
+      --gradient-end: #2563eb;
+      --terminal-red: #ff5f57;
+      --terminal-yellow: #febc2e;
+      --terminal-green: #28c840;
+      --white: #ffffff;
+    }
 
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(10, 10, 10, 0.75);
-    backdrop-filter: blur(20px) saturate(180%);
-    border-bottom: 1px solid var(--border-hairline);
-    padding: 0 24px;
-  }
-  .nav-inner {
-    max-width: 960px; margin: 0 auto;
-    display: flex; align-items: center; justify-content: space-between;
-    height: 48px;
-  }
-  .nav-logo { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--text-primary); text-decoration: none; }
-  .nav-links { display: flex; gap: 24px; align-items: center; }
-  .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
-  .nav-gh { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-system);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.47;
+      -webkit-font-smoothing: antialiased;
+    }
 
-  .hero { max-width: 960px; margin: 0 auto; padding: 100px 24px 80px; text-align: center; }
-  .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-subtle); color: var(--accent); padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 32px; border: 1px solid rgba(2, 74, 216, 0.25); }
-  .hero-badge span { font-size: 11px; color: var(--green); background: var(--green-subtle); padding: 1px 6px; border-radius: 8px; }
-  .hero h1 { font-size: 48px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin-bottom: 24px; }
-  .hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), #78a7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .hero p { font-size: 19px; color: var(--text-secondary); max-width: 560px; margin: 0 auto 40px; }
-  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--frosted-nav);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 48px;
+    }
+    .nav-logo { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); text-decoration: none; }
+    .nav-links { display: flex; gap: 18px; align-items: center; }
+    .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+    .nav-gh { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--border-strong); }
+    .nav-control {
+      appearance: none; background: var(--frosted-button); color: var(--text-secondary);
+      border: 1px solid var(--border-strong); border-radius: 8px; cursor: pointer;
+      font: inherit; font-size: 13px; line-height: 1; padding: 6px 9px;
+    }
 
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 12px; font-size: 15px; font-weight: 500; text-decoration: none; }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-secondary { background: var(--surface-card); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+    .hero { max-width: 960px; margin: 0 auto; padding: 100px 24px 80px; text-align: center; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-subtle); color: var(--accent); padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 32px; border: 1px solid var(--accent-border); }
+    .hero-badge span { font-size: 11px; color: var(--green); background: var(--green-subtle); padding: 1px 6px; border-radius: 8px; }
+    .hero h1 { font-size: 48px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin-bottom: 24px; }
+    .hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 19px; color: var(--text-secondary); max-width: 560px; margin: 0 auto 40px; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
-  .terminal { max-width: 720px; margin: 0 auto 120px; background: var(--surface-black); border: 1px solid var(--border-subtle); border-radius: 14px; overflow: hidden; }
-  .terminal-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--surface-elevated); border-bottom: 1px solid var(--border-hairline); }
-  .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
-  .terminal-dot.r { background: #ff5f57; }
-  .terminal-dot.y { background: #febc2e; }
-  .terminal-dot.g { background: #28c840; }
-  .terminal-title { font-size: 12px; color: var(--text-tertiary); margin-left: 8px; }
-  .terminal-body { padding: 20px 24px; overflow-x: auto; }
-  .terminal-body pre { margin: 0; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; }
-  .terminal-body .prompt { color: var(--green); }
-  .terminal-body .cmd { color: var(--text-primary); }
-  .terminal-body .comment { color: var(--text-tertiary); }
-  .terminal-body .output { color: var(--text-secondary); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 12px; font-size: 15px; font-weight: 500; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: var(--white); }
+    .btn-secondary { background: var(--bg-card); color: var(--text); border: 1px solid var(--border-strong); }
 
-  section { max-width: 960px; margin: 0 auto; padding: 0 24px 100px; }
-  section h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.025em; margin-bottom: 16px; }
-  section h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 12px; }
-  section p { font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; max-width: 600px; }
+    .terminal { max-width: 720px; margin: 0 auto 120px; background: var(--bg-terminal); border: 1px solid var(--border-strong); border-radius: 14px; overflow: hidden; }
+    .terminal-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+    .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .terminal-dot.r { background: var(--terminal-red); }
+    .terminal-dot.y { background: var(--terminal-yellow); }
+    .terminal-dot.g { background: var(--terminal-green); }
+    .terminal-title { font-size: 12px; color: var(--text-tertiary); margin-left: 8px; }
+    .terminal-body { padding: 20px 24px; overflow-x: auto; }
+    .terminal-body pre { margin: 0; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; }
+    .terminal-body .prompt { color: var(--green); }
+    .terminal-body .cmd { color: var(--text); }
+    .terminal-body .comment { color: var(--text-tertiary); }
+    .terminal-body .output { color: var(--text-secondary); }
 
-  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-  .card { background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: 14px; padding: 24px; }
-  .card:hover { border-color: var(--border-visible); }
-  .card h3 { font-size: 15px; margin-bottom: 8px; }
-  .card p { font-size: 13px; color: var(--text-tertiary); margin: 0; }
+    section { max-width: 960px; margin: 0 auto; padding: 0 24px 100px; }
+    section h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.025em; margin-bottom: 16px; }
+    section h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 12px; }
+    section p { font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; max-width: 600px; }
 
-  .code-block { background: var(--surface-black); border: 1px solid var(--border-hairline); border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; overflow-x: auto; }
-  .code-block code { font-family: var(--font-mono); font-size: 13px; line-height: 1.7; color: var(--text-secondary); }
-  .code-block .hlg { color: var(--green); }
+    .features, .install-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+    .card:hover { border-color: var(--border-hover); }
+    .card h3 { font-size: 15px; margin-bottom: 8px; }
+    .card p { font-size: 13px; color: var(--text-tertiary); margin: 0; }
 
-  .table-wrap { overflow-x: auto; border: 1px solid var(--border-hairline); border-radius: 14px; background: var(--surface-card); }
-  table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-  th, td { padding: 14px 16px; border-bottom: 1px solid var(--border-hairline); }
-  th { color: var(--text-secondary); font-weight: 500; background: rgba(255, 255, 255, 0.02); }
-  td { color: var(--text-tertiary); }
-  tr:last-child td { border-bottom: 0; }
-  td:first-child { color: var(--text-primary); font-weight: 500; }
-  code { font-family: var(--font-mono); font-size: 0.9em; color: var(--text-secondary); }
-  .status-done { color: var(--green); }
-  .status-progress { color: var(--accent); }
+    .install-card { display: flex; flex-direction: column; }
+    .install-card h3 { font-size: 17px; }
+    .install-card > p { min-height: 38px; margin-bottom: 16px; }
+    .code-block { position: relative; background: var(--bg-terminal); border: 1px solid var(--border); border-radius: 10px; padding: 16px 52px 16px 16px; overflow-x: auto; }
+    .code-block code { display: block; font-family: var(--font-mono); font-size: 12px; line-height: 1.55; color: var(--text-secondary); white-space: pre; }
+    .copy-button {
+      position: absolute; top: 8px; right: 8px; background: var(--frosted-button); border: 1px solid var(--border-strong);
+      border-radius: 7px; color: var(--text-secondary); cursor: pointer; font: inherit; font-size: 12px; padding: 5px 8px;
+      opacity: 0.72; transition: opacity 150ms ease, border-color 150ms ease;
+    }
+    .code-block:hover .copy-button, .copy-button:focus { opacity: 1; border-color: var(--border-hover); outline: none; }
+    .install-note { margin: 24px 0 0; }
 
-  footer { border-top: 1px solid var(--border-hairline); padding: 32px 24px; text-align: center; color: var(--text-tertiary); font-size: 13px; }
-  footer a { color: var(--text-secondary); text-decoration: none; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-secondary); font-weight: 500; background: var(--table-heading); }
+    td { color: var(--text-tertiary); }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { color: var(--text); font-weight: 500; }
+    code { font-family: var(--font-mono); font-size: 0.9em; color: var(--text-secondary); }
+    .status-done { color: var(--green); }
+    .status-progress { color: var(--accent); }
 
-  @media (max-width: 640px) {
-    .hero h1 { font-size: 32px; }
-    .hero p { font-size: 17px; }
-    .nav-links a:not(.nav-gh) { display: none; }
-  }
-</style>
+    footer { border-top: 1px solid var(--border); padding: 32px 24px; text-align: center; color: var(--text-tertiary); font-size: 13px; }
+    footer a { color: var(--text-secondary); text-decoration: none; }
+
+    @media (max-width: 640px) {
+      .hero { padding-top: 72px; }
+      .hero h1 { font-size: 32px; }
+      .hero p { font-size: 17px; }
+      .nav-links { gap: 8px; }
+      .nav-links a:not(.nav-gh) { display: none; }
+      .nav-gh { padding: 4px 7px; }
+      .nav-gh svg { display: none; }
+    }
+  </style>
 </head>
 <body>
-
-<nav>
-  <div class="nav-inner">
-    <a href="/wade/" class="nav-logo">🏄 Wade</a>
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#install">Install</a>
-      <a href="#commands">Commands</a>
-      <a href="https://github.com/wadefengx/wade" class="nav-gh">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-        GitHub
-      </a>
+  <nav>
+    <div class="nav-inner">
+      <a href="/wade/" class="nav-logo">🏄 Wade</a>
+      <div class="nav-links">
+        <a href="#features" data-i18n="navFeatures">Features</a>
+        <a href="#install" data-i18n="navInstall">Install</a>
+        <a href="#commands" data-i18n="navCommands">Commands</a>
+        <button type="button" class="nav-control" id="language-toggle" aria-label="Switch language">中文</button>
+        <button type="button" class="nav-control" id="theme-toggle" aria-label="Switch theme">☀️</button>
+        <a href="https://github.com/wadefengx/wade" class="nav-gh">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
-<main>
-  <div class="hero">
-    <div class="hero-badge">🚀 Node.js · Go · Python <span>single binary</span></div>
-    <h1>One tool to manage<br>your <em>runtimes & registries</em></h1>
-    <p>Wade replaces nvm + cgr/nrm + gvm + pyenv. Single binary, install once, works everywhere.</p>
-    <div class="hero-actions">
-      <a href="#install" class="btn btn-primary">Get Started</a>
-      <a href="https://github.com/wadefengx/wade" class="btn btn-secondary">View on GitHub</a>
+  <main>
+    <div class="hero">
+      <div class="hero-badge"><span data-i18n="badgeRuntimes">🚀 Node.js · Go · Python</span> <span data-i18n="badgeBinary">single binary</span></div>
+      <h1><span data-i18n="heroLineOne">One tool to manage</span><br><em data-i18n="heroLineTwo">your runtimes &amp; registries</em></h1>
+      <p data-i18n="heroDescription">Wade replaces nvm + cgr/nrm + gvm + pyenv. Single binary, install once, works everywhere.</p>
+      <div class="hero-actions">
+        <a href="#install" class="btn btn-primary" data-i18n="getStarted">Get Started</a>
+        <a href="https://github.com/wadefengx/wade" class="btn btn-secondary" data-i18n="viewGitHub">View on GitHub</a>
+      </div>
     </div>
-  </div>
 
-  <div class="terminal">
-    <div class="terminal-bar">
-      <div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div>
-      <span class="terminal-title">wade -i</span>
-    </div>
-    <div class="terminal-body"><pre>
-<span class="comment"># Choose runtimes, mirrors, and PATH setup interactively</span>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div>
+        <span class="terminal-title">wade -i</span>
+      </div>
+      <div class="terminal-body"><pre>
+<span class="comment" data-i18n="terminalCommentOne"># Choose runtimes, mirrors, and PATH setup interactively</span>
 <span class="prompt">$</span> <span class="cmd">wade -i</span>
-<span class="output">◇  Which runtimes to configure?</span>
-<span class="output">│  1. Node.js</span>
-<span class="output">│  2. Go</span>
-<span class="output">│  3. Python</span>
-<span class="output">│  4. All of the above</span>
+<span class="output" data-i18n="terminalChoose">◇  Which runtimes to configure?</span>
+<span class="output" data-i18n="terminalNode">│  1. Node.js</span>
+<span class="output" data-i18n="terminalGo">│  2. Go</span>
+<span class="output" data-i18n="terminalPython">│  3. Python</span>
+<span class="output" data-i18n="terminalAll">│  4. All of the above</span>
 
-<span class="comment"># Or configure all runtimes with defaults, without prompts</span>
+<span class="comment" data-i18n="terminalCommentTwo"># Or configure all runtimes with defaults, without prompts</span>
 <span class="prompt">$</span> <span class="cmd">wade init -y</span>
-<span class="output">🌐 Go mirror: google-cn ✓</span>
-<span class="output">🌐 Go proxy: goproxy.cn ✓</span>
-<span class="output">🐍 pip registry: tsinghua ✓</span>
+<span class="output" data-i18n="terminalGoMirror">🌐 Go mirror: google-cn ✓</span>
+<span class="output" data-i18n="terminalGoProxy">🌐 Go proxy: goproxy.cn ✓</span>
+<span class="output" data-i18n="terminalPip">🐍 pip registry: tsinghua ✓</span>
 
-<span class="comment"># Install and switch Node.js or Go versions</span>
+<span class="comment" data-i18n="terminalCommentThree"># Install and switch Node.js or Go versions</span>
 <span class="prompt">$</span> <span class="cmd">wade node install 20</span>
-<span class="output">Node v20.x installed ✓</span>
+<span class="output" data-i18n="terminalNodeInstalled">Node v20.x installed ✓</span>
 
-<span class="comment"># Go</span>
+<span class="comment" data-i18n="terminalGoComment"># Go</span>
 <span class="prompt">$</span> <span class="cmd">wade go install 1.23</span>
-<span class="output">Go 1.23.x installed ✓</span>
+<span class="output" data-i18n="terminalGoInstalled">Go 1.23.x installed ✓</span>
 </pre></div>
-  </div>
-
-  <section id="features">
-    <h2>Why Wade?</h2>
-    <div class="features">
-      <div class="card"><h3>🎯 Node.js</h3><p>Install, switch, default, and remove Node versions. Set the npm, yarn, and pnpm registry together.</p></div>
-      <div class="card"><h3>🦫 Go</h3><p>Install and switch Go versions, then select download mirrors and a GOPROXY for module downloads.</p></div>
-      <div class="card"><h3>🐍 Python</h3><p>Discover system Python versions and switch pip package indexes without managing another runtime install.</p></div>
-      <div class="card"><h3>⚡ One binary</h3><p>A standalone Go binary with no Node, Go, or Python dependency. Install once and use everywhere.</p></div>
-      <div class="card"><h3>🌐 Mirror-aware</h3><p>Choose official or regional Node and Go download sources, plus built-in npm and pip registry presets.</p></div>
-      <div class="card"><h3>🔧 Guided setup</h3><p>Use <code>wade -i</code> for the interactive wizard or <code>wade init -y</code> for non-interactive defaults.</p></div>
     </div>
-  </section>
 
-  <section id="install">
-    <h2>Installation</h2>
-    <div class="code-block"><code>
-<span class="hlg"># Homebrew (macOS)</span>
-brew install wadefengx/tap/wade && wade -i
+    <section id="features">
+      <h2 data-i18n="featuresTitle">Why Wade?</h2>
+      <div class="features">
+        <div class="card"><h3 data-i18n="featureNodeTitle">🎯 Node.js</h3><p data-i18n="featureNodeText">Install, switch, default, and remove Node versions. Set the npm, yarn, and pnpm registry together.</p></div>
+        <div class="card"><h3 data-i18n="featureGoTitle">🦫 Go</h3><p data-i18n="featureGoText">Install and switch Go versions, then select download mirrors and a GOPROXY for module downloads.</p></div>
+        <div class="card"><h3 data-i18n="featurePythonTitle">🐍 Python</h3><p data-i18n="featurePythonText">Discover system Python versions and switch pip package indexes without managing another runtime install.</p></div>
+        <div class="card"><h3 data-i18n="featureBinaryTitle">⚡ One binary</h3><p data-i18n="featureBinaryText">A standalone Go binary with no Node, Go, or Python dependency. Install once and use everywhere.</p></div>
+        <div class="card"><h3 data-i18n="featureMirrorTitle">🌐 Mirror-aware</h3><p data-i18n="featureMirrorText">Choose official or regional Node and Go download sources, plus built-in npm and pip registry presets.</p></div>
+        <div class="card"><h3 data-i18n="featureSetupTitle">🔧 Guided setup</h3><p><span data-i18n="featureSetupBefore">Use </span><code>wade -i</code><span data-i18n="featureSetupMiddle"> for the interactive wizard or </span><code>wade init -y</code><span data-i18n="featureSetupAfter"> for non-interactive defaults.</span></p></div>
+      </div>
+    </section>
 
-<span class="hlg"># Scoop (Windows)</span>
-scoop bucket add wade https://github.com/wadefengx/scoop-wade
-scoop install wade && wade -i
+    <section id="install">
+      <h2 data-i18n="installTitle">Installation</h2>
+      <div class="install-options">
+        <article class="card install-card">
+          <h3 data-i18n="brewTitle">🍺 Homebrew (macOS)</h3>
+          <p data-i18n="brewDescription">Install Wade from the official Homebrew tap.</p>
+          <div class="code-block"><code>brew install wadefengx/tap/wade</code><button type="button" class="copy-button" data-copy="brew install wadefengx/tap/wade" data-i18n="copy">Copy</button></div>
+        </article>
+        <article class="card install-card">
+          <h3 data-i18n="scoopTitle">🥄 Scoop (Windows)</h3>
+          <p data-i18n="scoopDescription">Add the Wade bucket, then install the package.</p>
+          <div class="code-block"><code>scoop bucket add wade https://github.com/wadefengx/scoop-wade &amp;&amp; scoop install wade</code><button type="button" class="copy-button" data-copy="scoop bucket add wade https://github.com/wadefengx/scoop-wade &amp;&amp; scoop install wade" data-i18n="copy">Copy</button></div>
+        </article>
+        <article class="card install-card">
+          <h3 data-i18n="curlTitle">⌘ Curl (macOS / Linux)</h3>
+          <p data-i18n="curlDescription">Download and run the latest release installer.</p>
+          <div class="code-block"><code>curl -fsSL https://github.com/wadefengx/wade/releases/latest/download/install.sh | bash</code><button type="button" class="copy-button" data-copy="curl -fsSL https://github.com/wadefengx/wade/releases/latest/download/install.sh | bash" data-i18n="copy">Copy</button></div>
+        </article>
+      </div>
+      <p class="install-note"><span data-i18n="installHintBefore">After installation, run </span><code>wade -i</code><span data-i18n="installHintAfter"> to configure your runtimes, mirrors, and PATH.</span></p>
+    </section>
 
-<span class="hlg"># curl installer (macOS / Linux)</span>
-curl -fsSL https://github.com/wadefengx/wade/releases/latest/download/install.sh | bash
-wade -i
-    </code></div>
-    <p>Homebrew becomes available after the <code>wadefengx/tap</code> tap is published. The Scoop manifest lives in the <code>wadefengx/scoop-wade</code> bucket.</p>
-  </section>
+    <section id="commands">
+      <h2 data-i18n="commandsTitle">Command cheatsheet</h2>
+      <p data-i18n="commandsDescription">Start with the wizard, then use the focused commands below to manage versions, mirrors, registries, and shell integration.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th data-i18n="tableArea">Area</th><th data-i18n="tableCommand">Command</th><th data-i18n="tableWhat">What it does</th></tr></thead>
+          <tbody>
+            <tr><td data-i18n="areaSetup">Setup</td><td><code>wade -i</code> / <code>wade init -y</code></td><td data-i18n="cmdSetup">Run the interactive wizard or configure defaults without prompts.</td></tr>
+            <tr><td data-i18n="areaShell">Shell</td><td><code>wade setup --auto</code></td><td data-i18n="cmdShell">Configure the shims directory on PATH without prompts.</td></tr>
+            <tr><td data-i18n="areaStatus">Status</td><td><code>wade status</code></td><td data-i18n="cmdStatus">Show the current Node version, registry, and shim health.</td></tr>
+            <tr><td data-i18n="areaNode">Node</td><td><code>wade node install 20</code></td><td><span data-i18n="cmdNodeBefore">Install the latest Node 20 release; use </span><code>use</code><span data-i18n="cmdNodeMiddle">, </span><code>ls</code><span data-i18n="cmdNodeMiddleTwo">, </span><code>ls-remote</code><span data-i18n="cmdNodeMiddleThree">, </span><code>default</code><span data-i18n="cmdNodeMiddleFour">, </span><code>uninstall</code><span data-i18n="cmdNodeMiddleFive">, or </span><code>current</code><span data-i18n="cmdNodeAfter"> as needed.</span></td></tr>
+            <tr><td data-i18n="areaNodeMirror">Node mirror</td><td><code>wade node mirror mirror</code></td><td><span data-i18n="cmdNodeMirrorBefore">Use npmmirror.com; run </span><code>wade node mirror official</code><span data-i18n="cmdNodeMirrorMiddle"> for nodejs.org or </span><code>wade node mirror</code><span data-i18n="cmdNodeMirrorAfter"> to inspect the source.</span></td></tr>
+            <tr><td data-i18n="areaNpmRegistry">npm registry</td><td><code>wade registry use taobao</code></td><td><span data-i18n="cmdRegistryBefore">Switch npm, yarn, and pnpm together. Use </span><code>ls</code><span data-i18n="cmdRegistryMiddle">, </span><code>add</code><span data-i18n="cmdRegistryMiddleTwo">, </span><code>del</code><span data-i18n="cmdRegistryMiddleThree">, and </span><code>test</code><span data-i18n="cmdRegistryAfter"> to manage registries.</span></td></tr>
+            <tr><td data-i18n="areaGo">Go</td><td><code>wade go install 1.23</code></td><td><span data-i18n="cmdGoBefore">Install Go, then use </span><code>wade go use 1.23</code><span data-i18n="cmdGoMiddle">, </span><code>ls</code><span data-i18n="cmdGoMiddleTwo">, or </span><code>ls-remote</code><span data-i18n="cmdGoAfter"> to manage versions.</span></td></tr>
+            <tr><td data-i18n="areaGoNetwork">Go network</td><td><code>wade go mirror use google-cn</code></td><td><span data-i18n="cmdGoNetworkBefore">Select a Go download mirror; use </span><code>mirror ls</code><span data-i18n="cmdGoNetworkMiddle">, </span><code>mirror test</code><span data-i18n="cmdGoNetworkMiddleTwo">, </span><code>proxy ls</code><span data-i18n="cmdGoNetworkMiddleThree">, and </span><code>proxy use goproxy.cn</code><span data-i18n="cmdGoNetworkAfter"> for GOPROXY.</span></td></tr>
+            <tr><td data-i18n="areaPython">Python</td><td><code>wade python ls</code></td><td><span data-i18n="cmdPythonBefore">Detect system Python versions. Switch pip indexes with </span><code>wade python registry use tsinghua</code><span data-i18n="cmdPythonMiddle"> or </span><code>aliyun</code><span data-i18n="cmdPythonAfter">.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  <section id="commands">
-    <h2>Command cheatsheet</h2>
-    <p>Start with the wizard, then use the focused commands below to manage versions, mirrors, registries, and shell integration.</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Area</th><th>Command</th><th>What it does</th></tr></thead>
-        <tbody>
-          <tr><td>Setup</td><td><code>wade -i</code> / <code>wade init -y</code></td><td>Run the interactive wizard or configure defaults without prompts.</td></tr>
-          <tr><td>Shell</td><td><code>wade setup --auto</code></td><td>Configure the shims directory on PATH without prompts.</td></tr>
-          <tr><td>Status</td><td><code>wade status</code></td><td>Show the current Node version, registry, and shim health.</td></tr>
-          <tr><td>Node</td><td><code>wade node install 20</code></td><td>Install the latest Node 20 release; use <code>use</code>, <code>ls</code>, <code>ls-remote</code>, <code>default</code>, <code>uninstall</code>, or <code>current</code> as needed.</td></tr>
-          <tr><td>Node mirror</td><td><code>wade node mirror mirror</code></td><td>Use npmmirror.com; run <code>wade node mirror official</code> for nodejs.org or <code>wade node mirror</code> to inspect the source.</td></tr>
-          <tr><td>npm registry</td><td><code>wade registry use taobao</code></td><td>Switch npm, yarn, and pnpm together. Use <code>ls</code>, <code>add</code>, <code>del</code>, and <code>test</code> to manage registries.</td></tr>
-          <tr><td>Go</td><td><code>wade go install 1.23</code></td><td>Install Go, then use <code>wade go use 1.23</code>, <code>ls</code>, or <code>ls-remote</code> to manage versions.</td></tr>
-          <tr><td>Go network</td><td><code>wade go mirror use google-cn</code></td><td>Select a Go download mirror; use <code>mirror ls</code>, <code>mirror test</code>, <code>proxy ls</code>, and <code>proxy use goproxy.cn</code> for GOPROXY.</td></tr>
-          <tr><td>Python</td><td><code>wade python ls</code></td><td>Detect system Python versions. Switch pip indexes with <code>wade python registry use tsinghua</code> or <code>aliyun</code>.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+    <section id="roadmap">
+      <h2 data-i18n="roadmapTitle">Project status</h2>
+      <p data-i18n="roadmapDescription">Wade’s core runtime, mirror, setup, and quality milestones are complete. Distribution is the active milestone.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th data-i18n="tableMilestone">Milestone</th><th data-i18n="tableScope">Scope</th><th data-i18n="tableStatus">Status</th></tr></thead>
+          <tbody>
+            <tr><td>M0</td><td data-i18n="m0">Project skeleton</td><td class="status-done" data-i18n="done">Done</td></tr>
+            <tr><td>M1</td><td data-i18n="m1">npm registry management</td><td class="status-done" data-i18n="done">Done</td></tr>
+            <tr><td>M2</td><td data-i18n="m2">Node version management</td><td class="status-done" data-i18n="done">Done</td></tr>
+            <tr><td>M3</td><td data-i18n="m3">Release automation</td><td class="status-done" data-i18n="done">Done</td></tr>
+            <tr><td>M4</td><td data-i18n="m4">Status, shell completions, and self-update</td><td class="status-done" data-i18n="done">Done</td></tr>
+            <tr><td>M5</td><td data-i18n="m5">Multi-runtime init wizard</td><td class="status-done" data-i18n="done">Done</td></tr>
+            <tr><td>M6</td><td data-i18n="m6">Go versions, Go mirrors/GOPROXY, and Python pip mirrors</td><td class="status-done" data-i18n="done">Done</td></tr>
+            <tr><td>M7</td><td><span data-i18n="m7Before">Unit and integration quality work; </span><code>wade setup --auto</code></td><td class="status-done" data-i18n="done">Done</td></tr>
+            <tr><td>M8</td><td data-i18n="m8">Homebrew tap, Scoop bucket, and documentation site distribution</td><td class="status-progress" data-i18n="inProgress">In progress</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-  <section id="roadmap">
-    <h2>Project status</h2>
-    <p>Wade’s core runtime, mirror, setup, and quality milestones are complete. Distribution is the active milestone.</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Milestone</th><th>Scope</th><th>Status</th></tr></thead>
-        <tbody>
-          <tr><td>M0</td><td>Project skeleton</td><td class="status-done">Done</td></tr>
-          <tr><td>M1</td><td>npm registry management</td><td class="status-done">Done</td></tr>
-          <tr><td>M2</td><td>Node version management</td><td class="status-done">Done</td></tr>
-          <tr><td>M3</td><td>Release automation</td><td class="status-done">Done</td></tr>
-          <tr><td>M4</td><td>Status, shell completions, and self-update</td><td class="status-done">Done</td></tr>
-          <tr><td>M5</td><td>Multi-runtime init wizard</td><td class="status-done">Done</td></tr>
-          <tr><td>M6</td><td>Go versions, Go mirrors/GOPROXY, and Python pip mirrors</td><td class="status-done">Done</td></tr>
-          <tr><td>M7</td><td>Unit and integration quality work; <code>wade setup --auto</code></td><td class="status-done">Done</td></tr>
-          <tr><td>M8</td><td>Homebrew tap, Scoop bucket, and documentation site distribution</td><td class="status-progress">In progress</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-</main>
+  <footer>
+    <p><span data-i18n="footerWade">Wade · MIT License · </span><a href="https://github.com/wadefengx/wade">GitHub</a><span data-i18n="footerDocs"> · </span><a href="https://github.com/wadefengx/wade/blob/main/README_zh.md" data-i18n="chineseDocs">Chinese docs</a></p>
+  </footer>
 
-<footer>
-  <p>Wade · MIT License · <a href="https://github.com/wadefengx/wade">GitHub</a> · <a href="https://github.com/wadefengx/wade/blob/main/README_zh.md">中文文档</a></p>
-</footer>
+  <script>
+    const translations = {
+      en: {
+        navFeatures: "Features", navInstall: "Install", navCommands: "Commands",
+        badgeRuntimes: "🚀 Node.js · Go · Python", badgeBinary: "single binary",
+        heroLineOne: "One tool to manage", heroLineTwo: "your runtimes & registries",
+        heroDescription: "Wade replaces nvm + cgr/nrm + gvm + pyenv. Single binary, install once, works everywhere.",
+        getStarted: "Get Started", viewGitHub: "View on GitHub",
+        terminalCommentOne: "# Choose runtimes, mirrors, and PATH setup interactively", terminalChoose: "◇  Which runtimes to configure?",
+        terminalNode: "│  1. Node.js", terminalGo: "│  2. Go", terminalPython: "│  3. Python", terminalAll: "│  4. All of the above",
+        terminalCommentTwo: "# Or configure all runtimes with defaults, without prompts", terminalGoMirror: "🌐 Go mirror: google-cn ✓",
+        terminalGoProxy: "🌐 Go proxy: goproxy.cn ✓", terminalPip: "🐍 pip registry: tsinghua ✓",
+        terminalCommentThree: "# Install and switch Node.js or Go versions", terminalNodeInstalled: "Node v20.x installed ✓", terminalGoComment: "# Go", terminalGoInstalled: "Go 1.23.x installed ✓",
+        featuresTitle: "Why Wade?", featureNodeTitle: "🎯 Node.js", featureNodeText: "Install, switch, default, and remove Node versions. Set the npm, yarn, and pnpm registry together.",
+        featureGoTitle: "🦫 Go", featureGoText: "Install and switch Go versions, then select download mirrors and a GOPROXY for module downloads.",
+        featurePythonTitle: "🐍 Python", featurePythonText: "Discover system Python versions and switch pip package indexes without managing another runtime install.",
+        featureBinaryTitle: "⚡ One binary", featureBinaryText: "A standalone Go binary with no Node, Go, or Python dependency. Install once and use everywhere.",
+        featureMirrorTitle: "🌐 Mirror-aware", featureMirrorText: "Choose official or regional Node and Go download sources, plus built-in npm and pip registry presets.",
+        featureSetupTitle: "🔧 Guided setup", featureSetupBefore: "Use ", featureSetupMiddle: " for the interactive wizard or ", featureSetupAfter: " for non-interactive defaults.",
+        installTitle: "Installation", brewTitle: "🍺 Homebrew (macOS)", brewDescription: "Install Wade from the official Homebrew tap.",
+        scoopTitle: "🥄 Scoop (Windows)", scoopDescription: "Add the Wade bucket, then install the package.",
+        curlTitle: "⌘ Curl (macOS / Linux)", curlDescription: "Download and run the latest release installer.", copy: "Copy", copied: "✓ Copied!",
+        installHintBefore: "After installation, run ", installHintAfter: " to configure your runtimes, mirrors, and PATH.",
+        commandsTitle: "Command cheatsheet", commandsDescription: "Start with the wizard, then use the focused commands below to manage versions, mirrors, registries, and shell integration.",
+        tableArea: "Area", tableCommand: "Command", tableWhat: "What it does", areaSetup: "Setup", areaShell: "Shell", areaStatus: "Status", areaNode: "Node",
+        areaNodeMirror: "Node mirror", areaNpmRegistry: "npm registry", areaGo: "Go", areaGoNetwork: "Go network", areaPython: "Python",
+        cmdSetup: "Run the interactive wizard or configure defaults without prompts.", cmdShell: "Configure the shims directory on PATH without prompts.", cmdStatus: "Show the current Node version, registry, and shim health.",
+        cmdNodeBefore: "Install the latest Node 20 release; use ", cmdNodeMiddle: ", ", cmdNodeMiddleTwo: ", ", cmdNodeMiddleThree: ", ", cmdNodeMiddleFour: ", ", cmdNodeMiddleFive: ", or ", cmdNodeAfter: " as needed.",
+        cmdNodeMirrorBefore: "Use npmmirror.com; run ", cmdNodeMirrorMiddle: " for nodejs.org or ", cmdNodeMirrorAfter: " to inspect the source.",
+        cmdRegistryBefore: "Switch npm, yarn, and pnpm together. Use ", cmdRegistryMiddle: ", ", cmdRegistryMiddleTwo: ", ", cmdRegistryMiddleThree: ", and ", cmdRegistryAfter: " to manage registries.",
+        cmdGoBefore: "Install Go, then use ", cmdGoMiddle: ", ", cmdGoMiddleTwo: ", or ", cmdGoAfter: " to manage versions.",
+        cmdGoNetworkBefore: "Select a Go download mirror; use ", cmdGoNetworkMiddle: ", ", cmdGoNetworkMiddleTwo: ", ", cmdGoNetworkMiddleThree: ", and ", cmdGoNetworkAfter: " for GOPROXY.",
+        cmdPythonBefore: "Detect system Python versions. Switch pip indexes with ", cmdPythonMiddle: " or ", cmdPythonAfter: ".",
+        roadmapTitle: "Project status", roadmapDescription: "Wade’s core runtime, mirror, setup, and quality milestones are complete. Distribution is the active milestone.",
+        tableMilestone: "Milestone", tableScope: "Scope", tableStatus: "Status", m0: "Project skeleton", m1: "npm registry management", m2: "Node version management",
+        m3: "Release automation", m4: "Status, shell completions, and self-update", m5: "Multi-runtime init wizard", m6: "Go versions, Go mirrors/GOPROXY, and Python pip mirrors",
+        m7Before: "Unit and integration quality work; ", m8: "Homebrew tap, Scoop bucket, and documentation site distribution", done: "Done", inProgress: "In progress",
+        footerWade: "Wade · MIT License · ", footerDocs: " · ", chineseDocs: "Chinese docs"
+      },
+      zh: {
+        navFeatures: "功能", navInstall: "安装", navCommands: "命令",
+        badgeRuntimes: "🚀 Node.js · Go · Python", badgeBinary: "单一二进制文件",
+        heroLineOne: "一个工具管理", heroLineTwo: "你的运行时与镜像源",
+        heroDescription: "Wade 替代 nvm + cgr/nrm + gvm + pyenv。单一二进制文件，一次安装，随处可用。",
+        getStarted: "开始使用", viewGitHub: "在 GitHub 查看",
+        terminalCommentOne: "# 交互式选择运行时、镜像源和 PATH 配置", terminalChoose: "◇  要配置哪些运行时？",
+        terminalNode: "│  1. Node.js", terminalGo: "│  2. Go", terminalPython: "│  3. Python", terminalAll: "│  4. 全部",
+        terminalCommentTwo: "# 或使用默认值配置全部运行时，无需交互", terminalGoMirror: "🌐 Go 镜像：google-cn ✓",
+        terminalGoProxy: "🌐 Go 代理：goproxy.cn ✓", terminalPip: "🐍 pip 源：tsinghua ✓",
+        terminalCommentThree: "# 安装并切换 Node.js 或 Go 版本", terminalNodeInstalled: "Node v20.x 已安装 ✓", terminalGoComment: "# Go", terminalGoInstalled: "Go 1.23.x 已安装 ✓",
+        featuresTitle: "为什么选择 Wade？", featureNodeTitle: "🎯 Node.js", featureNodeText: "安装、切换、设为默认或移除 Node 版本，并同时设置 npm、yarn 和 pnpm 镜像源。",
+        featureGoTitle: "🦫 Go", featureGoText: "安装和切换 Go 版本，再为模块下载选择镜像和 GOPROXY。",
+        featurePythonTitle: "🐍 Python", featurePythonText: "发现系统 Python 版本，并切换 pip 包索引，无需管理另一套运行时安装。",
+        featureBinaryTitle: "⚡ 单一二进制文件", featureBinaryText: "独立的 Go 二进制文件，不依赖 Node、Go 或 Python。一次安装，随处可用。",
+        featureMirrorTitle: "🌐 镜像感知", featureMirrorText: "选择官方或区域性的 Node 和 Go 下载源，以及内置 npm 和 pip 镜像预设。",
+        featureSetupTitle: "🔧 引导式配置", featureSetupBefore: "使用 ", featureSetupMiddle: " 启动交互式向导，或使用 ", featureSetupAfter: " 应用非交互式默认配置。",
+        installTitle: "安装", brewTitle: "🍺 Homebrew（macOS）", brewDescription: "从官方 Homebrew tap 安装 Wade。",
+        scoopTitle: "🥄 Scoop（Windows）", scoopDescription: "添加 Wade bucket 后安装软件包。",
+        curlTitle: "⌘ Curl（macOS / Linux）", curlDescription: "下载并运行最新版本的安装脚本。", copy: "复制", copied: "✓ 已复制！",
+        installHintBefore: "安装后，运行 ", installHintAfter: " 配置运行时、镜像源和 PATH。",
+        commandsTitle: "命令速查表", commandsDescription: "从向导开始，然后使用下方的专用命令管理版本、镜像源、注册表和 shell 集成。",
+        tableArea: "类别", tableCommand: "命令", tableWhat: "作用", areaSetup: "配置", areaShell: "Shell", areaStatus: "状态", areaNode: "Node",
+        areaNodeMirror: "Node 镜像", areaNpmRegistry: "npm 注册表", areaGo: "Go", areaGoNetwork: "Go 网络", areaPython: "Python",
+        cmdSetup: "运行交互式向导，或无需提示地应用默认配置。", cmdShell: "无需提示地将 shims 目录配置到 PATH。", cmdStatus: "显示当前 Node 版本、注册表和 shim 状态。",
+        cmdNodeBefore: "安装最新的 Node 20 版本；按需使用 ", cmdNodeMiddle: "、", cmdNodeMiddleTwo: "、", cmdNodeMiddleThree: "、", cmdNodeMiddleFour: "、", cmdNodeMiddleFive: " 或 ", cmdNodeAfter: "。",
+        cmdNodeMirrorBefore: "使用 npmmirror.com；运行 ", cmdNodeMirrorMiddle: " 使用 nodejs.org，或运行 ", cmdNodeMirrorAfter: " 查看当前源。",
+        cmdRegistryBefore: "同时切换 npm、yarn 和 pnpm。使用 ", cmdRegistryMiddle: "、", cmdRegistryMiddleTwo: "、", cmdRegistryMiddleThree: " 和 ", cmdRegistryAfter: " 管理注册表。",
+        cmdGoBefore: "安装 Go 后，使用 ", cmdGoMiddle: "、", cmdGoMiddleTwo: " 或 ", cmdGoAfter: " 管理版本。",
+        cmdGoNetworkBefore: "选择 Go 下载镜像；使用 ", cmdGoNetworkMiddle: "、", cmdGoNetworkMiddleTwo: "、", cmdGoNetworkMiddleThree: " 和 ", cmdGoNetworkAfter: " 配置 GOPROXY。",
+        cmdPythonBefore: "发现系统 Python 版本。使用 ", cmdPythonMiddle: " 或 ", cmdPythonAfter: " 切换 pip 索引。",
+        roadmapTitle: "项目状态", roadmapDescription: "Wade 的核心运行时、镜像、配置和质量里程碑已完成，当前正在推进分发。",
+        tableMilestone: "里程碑", tableScope: "范围", tableStatus: "状态", m0: "项目骨架", m1: "npm 注册表管理", m2: "Node 版本管理",
+        m3: "发布自动化", m4: "状态、shell 补全和自更新", m5: "多运行时初始化向导", m6: "Go 版本、Go 镜像/GOPROXY 和 Python pip 镜像",
+        m7Before: "单元和集成质量工作；", m8: "Homebrew tap、Scoop bucket 和文档网站分发", done: "已完成", inProgress: "进行中",
+        footerWade: "Wade · MIT 许可证 · ", footerDocs: " · ", chineseDocs: "中文文档"
+      }
+    };
 
+    const languageToggle = document.getElementById("language-toggle");
+    const themeToggle = document.getElementById("theme-toggle");
+    let language = localStorage.getItem("wade-lang") === "zh" ? "zh" : "en";
+    const savedTheme = localStorage.getItem("wade-theme");
+    let theme = savedTheme === "light" || savedTheme === "dark"
+      ? savedTheme
+      : (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+
+    function renderLanguage() {
+      document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+      document.querySelectorAll("[data-i18n]").forEach((element) => {
+        const key = element.dataset.i18n;
+        if (translations[language][key] && element.children.length === 0) {
+          element.textContent = translations[language][key];
+        }
+      });
+      languageToggle.textContent = language === "en" ? "中文" : "EN";
+    }
+
+    function renderTheme() {
+      document.documentElement.dataset.theme = theme;
+      themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+    }
+
+    languageToggle.addEventListener("click", () => {
+      language = language === "en" ? "zh" : "en";
+      localStorage.setItem("wade-lang", language);
+      renderLanguage();
+    });
+
+    themeToggle.addEventListener("click", () => {
+      theme = theme === "dark" ? "light" : "dark";
+      localStorage.setItem("wade-theme", theme);
+      renderTheme();
+    });
+
+    document.querySelectorAll("[data-copy]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy);
+          button.textContent = translations[language].copied;
+          window.setTimeout(() => { button.textContent = translations[language].copy; }, 2000);
+        } catch (error) {
+          button.textContent = translations[language].copy;
+        }
+      });
+    });
+
+    renderLanguage();
+    renderTheme();
+  </script>
 </body>
 </html>
