@@ -4,6 +4,23 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.0] — 2026-07-31
+
+### Added
+
+- **`.wade-version` project pinning**: `wade node use` (no arg) auto-detects the version file walking cwd → home, like nvm's `.nvmrc`
+- **`internal/platform/` layer**: `Symlink()` abstraction with Windows hard-link fallback (fixes shim creation failing without admin/Developer Mode)
+- **CI quality gate** (`.github/workflows/ci.yml`): gofmt/vet/test/build on push + PR
+- **cmd/ unit tests**: checksum verification + archive extraction (cmd coverage 0 → 10%)
+- **update flow hardened**: SHA256 verification + real extraction (was installing raw archive)
+
+### Fixed
+
+- `wade update` installed the raw `.tar.gz` archive as the binary (never extracted) — now extracts and verifies checksum against the real `wade-<os>-<arch>.sha256` asset names
+- Shim creation error swallowing (`os.Remove`/`os.Symlink` failures now propagate)
+
+---
+
 ## [v0.2.1] — 2026-07-31
 
 ### Added
