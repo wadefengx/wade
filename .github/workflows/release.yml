@@ -23,6 +23,9 @@ jobs:
           - os: linux
             arch: amd64
             ext: tar.gz
+          - os: linux
+            arch: arm64
+            ext: tar.gz
           - os: windows
             arch: amd64
             ext: zip

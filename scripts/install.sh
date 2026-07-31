@@ -31,6 +31,7 @@ case "$OS" in
   linux)
     case "$ARCH" in
       x86_64|amd64) PLATFORM="linux-amd64" ;;
+      aarch64|arm64) PLATFORM="linux-arm64" ;;
       *) echo -e "${RED}Error: unsupported architecture $ARCH on Linux${NC}"; exit 1 ;;
     esac
     ;;
