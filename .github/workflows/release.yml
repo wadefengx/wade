@@ -66,8 +66,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
+
+      - name: Stage installer
+        run: cp scripts/install.sh install.sh
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -75,6 +81,7 @@ jobs:
           name: "wade ${{ github.ref_name }}"
           files: |
             wade-*/*
+            install.sh
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
