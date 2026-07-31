@@ -4,6 +4,24 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.2.1] — 2026-07-31
+
+### Added
+
+- **M8 Distribution complete**: Homebrew tap `wadefengx/tap` + Scoop bucket `wadefengx/scoop-wade` live with production formula/manifest (real SHA256 digests)
+- **GitHub Pages site** live at https://wadefengx.github.io/wade/ (multi-runtime features, install guide, command cheatsheet, milestone status)
+- **release.yml version injection**: `-X main.version=<tag>` via `main.version` var
+- **release.yml update-tap job**: auto-updates tap/bucket manifests on release via `scripts/release-shas.sh --update` (needs `TAP_TOKEN` secret)
+- **install.sh now uploaded** as release asset (fixes `releases/latest/download/install.sh` 404)
+- **scripts/release-shas.sh**: fetch latest release digests, print or `--update` templates
+
+### Fixed
+
+- `update-tap` job used dead sed placeholders (templates were hardcoded) → now uses release-shas.sh
+- `docs/index.html` refreshed for multi-runtime + new commands (M0-M8 status table)
+
+---
+
 ## [v0.2.0] — 2026-07-28
 
 ### Added
