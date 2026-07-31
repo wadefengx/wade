@@ -92,10 +92,7 @@ wade (single Go binary)
 │   │   └── tester.go       # latency testing
 │   ├── config/             # Config persistence (TOML)
 │   │   └── config.go
-│   └── platform/           # OS abstraction layer
-│       ├── darwin.go
-│       ├── windows.go
-│       └── linux.go
+│   └── platform/           # OS abstraction layer (platform.go, unix/windows variants)
 ├── spec/                   # Spec documents
 │   ├── SPEC.md             # Master spec (entry point)
 │   ├── node-spec.md        # Node version management spec
@@ -116,7 +113,7 @@ wade (single Go binary)
 
 ### 5.1 Shim-based version switching
 
-Instead of modifying PATH on every `wade node use`, Wade uses a **shim directory** in `~/.wade/shims/`:
+Instead of modifying PATH on every `wade node use`, Wade uses a **shim directory** in `~/.wade/shims/`. Unlike a junction fallback on Windows, binary shims use hard links when symbolic-link privileges are unavailable.
 
 ```
 ~/.wade/

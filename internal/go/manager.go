@@ -15,6 +15,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/wadefengx/wade/internal/config"
+	"github.com/wadefengx/wade/internal/platform"
 )
 
 // RemoteVersion from Go's JSON API
@@ -246,8 +247,12 @@ func UseVersion(version string) error {
 			continue
 		}
 		shim := filepath.Join(shimDir, name)
-		os.Remove(shim)
-		os.Symlink(target, shim)
+		if err := os.Remove(shim); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove existing shim for %s: %w", name, err)
+		}
+		if err := platform.Symlink(target, shim); err != nil {
+			return fmt.Errorf("create shim for %s: %w", name, err)
+		}
 	}
 
 	currentFile := filepath.Join(dir, "go", "current")

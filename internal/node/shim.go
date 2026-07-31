@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/wadefengx/wade/internal/config"
+	"github.com/wadefengx/wade/internal/platform"
 )
 
 // ShimDir returns the path to ~/.wade/shims/
@@ -53,10 +54,12 @@ func UseVersion(version string) error {
 		target := filepath.Join(shimDir, s.name)
 
 		// Remove existing symlink
-		os.Remove(target)
+		if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove existing shim for %s: %w", s.name, err)
+		}
 
 		// Create new symlink
-		if err := os.Symlink(s.target, target); err != nil {
+		if err := platform.Symlink(s.target, target); err != nil {
 			return fmt.Errorf("create shim for %s: %w", s.name, err)
 		}
 	}
@@ -66,8 +69,12 @@ func UseVersion(version string) error {
 		target := filepath.Join(versionBin, optional)
 		if _, err := os.Stat(target); err == nil {
 			shim := filepath.Join(shimDir, optional)
-			os.Remove(shim)
-			os.Symlink(target, shim)
+			if err := os.Remove(shim); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("remove existing shim for %s: %w", optional, err)
+			}
+			if err := platform.Symlink(target, shim); err != nil {
+				return fmt.Errorf("create shim for %s: %w", optional, err)
+			}
 		}
 	}
 

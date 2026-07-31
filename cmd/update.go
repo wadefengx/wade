@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -86,8 +88,16 @@ appropriate binary for the current platform.`,
 		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
 			return err
 		}
-		tmpFile.Chmod(0755)
-		tmpFile.Close()
+		if err := tmpFile.Chmod(0755); err != nil {
+			return fmt.Errorf("set download permissions: %w", err)
+		}
+		if err := tmpFile.Close(); err != nil {
+			return fmt.Errorf("close download: %w", err)
+		}
+
+		if err := verifyChecksum(tmpFile.Name(), url+".sha256"); err != nil {
+			return fmt.Errorf("verify downloaded update: %w", err)
+		}
 
 		// Find current binary location
 		currentBin, err := os.Executable()
@@ -144,6 +154,44 @@ func getLatestVersion(repo string) (string, error) {
 	tag := text[tagStart : tagStart+tagEnd]
 
 	return tag, nil
+}
+
+func verifyChecksum(archivePath, checksumURL string) error {
+	resp, err := http.Get(checksumURL)
+	if err != nil {
+		return fmt.Errorf("download checksum: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("download checksum failed: HTTP %d", resp.StatusCode)
+	}
+
+	checksumFile, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read checksum: %w", err)
+	}
+	fields := strings.Fields(string(checksumFile))
+	if len(fields) == 0 {
+		return fmt.Errorf("invalid checksum file")
+	}
+
+	archive, err := os.Open(archivePath)
+	if err != nil {
+		return fmt.Errorf("open downloaded archive: %w", err)
+	}
+	defer archive.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, archive); err != nil {
+		return fmt.Errorf("hash downloaded archive: %w", err)
+	}
+
+	actual := hex.EncodeToString(hash.Sum(nil))
+	if !strings.EqualFold(actual, fields[0]) {
+		return fmt.Errorf("checksum mismatch: expected %s, got %s", fields[0], actual)
+	}
+	return nil
 }
 
 func init() {
