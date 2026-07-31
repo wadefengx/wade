@@ -2,6 +2,7 @@ package node
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,8 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/wadefengx/wade/internal/config"
 )
+
+var ErrProjectVersionNotFound = errors.New(".wade-version file not found")
 
 // Version represents a parsed Node version
 type Version struct {
@@ -194,6 +197,48 @@ func IsInstalled(version string) bool {
 		}
 	}
 	return false
+}
+
+// FindProjectVersion finds the nearest .wade-version file between the current directory and the home directory.
+func FindProjectVersion() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get working directory: %w", err)
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("get home directory: %w", err)
+	}
+
+	cwd = filepath.Clean(cwd)
+	home = filepath.Clean(home)
+	cwd, err = filepath.EvalSymlinks(cwd)
+	if err != nil {
+		return "", fmt.Errorf("resolve working directory: %w", err)
+	}
+	home, err = filepath.EvalSymlinks(home)
+	if err != nil {
+		return "", fmt.Errorf("resolve home directory: %w", err)
+	}
+	relative, err := filepath.Rel(home, cwd)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", ErrProjectVersionNotFound
+	}
+
+	for dir := cwd; ; dir = filepath.Dir(dir) {
+		contents, err := os.ReadFile(filepath.Join(dir, ".wade-version"))
+		if err == nil {
+			return strings.TrimSpace(strings.SplitN(string(contents), "\n", 2)[0]), nil
+		}
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("read .wade-version: %w", err)
+		}
+		if dir == home {
+			break
+		}
+	}
+
+	return "", ErrProjectVersionNotFound
 }
 
 func mustAtoi(s string) int {

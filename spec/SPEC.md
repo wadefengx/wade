@@ -150,26 +150,27 @@ url = "https://npm.mycompany.com/"
 - 1: general error
 - 2: version already installed
 
-### 4.2 `wade node use <version>`
+### 4.2 `wade node use [version]`
 
 **Purpose:** Switch to a specific Node.js version.
 
 **Behavior:**
-1. Verify version is installed (if not, error with "try `wade node install <version>` first")
-2. Update symlinks in `~/.wade/shims/`:
+1. When a version is provided, use it. When omitted, search the current directory and its parents through the user's home directory for the nearest `.wade-version` file and use its trimmed first line. Print: "Using project version v20.12.0 (.wade-version)".
+2. Verify version is installed (if not, error with "try `wade node install <version>` first")
+3. Update symlinks in `~/.wade/shims/`:
    - `node` → `~/.wade/versions/<version>/bin/node`
    - `npm` → `~/.wade/versions/<version>/bin/npm`
    - `npx` → `~/.wade/versions/<version>/bin/npx`
    - `yarn` → `~/.wade/versions/<version>/bin/yarn` (if exists)
    - `pnpm` → `~/.wade/versions/<version>/bin/pnpm` (if exists)
-3. Write version string to `~/.wade/current`
-4. Print: "Now using Node v20.12.0"
+4. Write version string to `~/.wade/current`
+5. Print: "Now using Node v20.12.0"
 
 **Edge cases:**
 - `~/.wade/shims/` doesn't exist → create it automatically
 - Symlink already exists → overwrite
 - Version not installed → error with suggestion
-- No version argument → use current version from `~/.wade/current` (re-link)
+- No version argument and no `.wade-version` file → return the existing missing-version argument error
 
 ### 4.3 `wade node ls`
 
@@ -365,7 +366,18 @@ Testing registry latency...
 
 **Output:** `wade v1.0.0`
 
-### 4.16 `wade init` / `wade -i`
+### 4.16 `wade update`
+
+**Purpose:** Update Wade to the latest GitHub Release for the current platform.
+
+**Behavior:**
+1. Fetch the latest release tag from GitHub.
+2. Download the platform archive named `wade-<os>-<arch>.tar.gz` (Unix) or `wade-<os>-<arch>.zip` (Windows).
+3. Verify the downloaded archive against the matching checksum asset `wade-<os>-<arch>.sha256`.
+4. Extract the `wade` or `wade.exe` executable from the verified archive to a temporary file beside the current executable.
+5. Replace the current executable with the extracted binary, restoring the backup if replacement fails.
+
+### 4.17 `wade init` / `wade -i`
 
 **Purpose:** Interactive setup wizard with runtime selection.
 
@@ -384,13 +396,13 @@ Testing registry latency...
 
 **`wade init` (no flags, in a project dir):** Write `.wade-version` file for current project (Node.js version pinning).
 
-### 4.17 `wade node mirror [official|mirror]`
+### 4.18 `wade node mirror [official|mirror]`
 
 **Purpose:** Show or set Node.js binary download source. Different from registry: controls where `wade node install` downloads from, not where `npm install` downloads from.
 
 ---
 
-### 4.18 `wade go install <version>`
+### 4.19 `wade go install <version>`
 
 **Purpose:** Download and install a Go version.
 
@@ -405,7 +417,7 @@ Testing registry latency...
 - Version already installed → error "already installed"
 - Mirror unreachable → retry once, then error
 
-### 4.19 `wade go use <version>`
+### 4.20 `wade go use <version>`
 
 **Purpose:** Switch to a Go version via shim.
 
@@ -414,7 +426,7 @@ Testing registry latency...
 2. Update symlinks in `~/.wade/shims/`: `go` and `gofmt` → `~/.wade/go/versions/<version>/bin/`
 3. Write version to `~/.wade/go/current`
 
-### 4.20 `wade go ls`
+### 4.21 `wade go ls`
 
 **Purpose:** List installed Go versions.
 
@@ -426,7 +438,7 @@ Testing registry latency...
   go1.21.0
 ```
 
-### 4.21 `wade go ls-remote`
+### 4.22 `wade go ls-remote`
 
 **Purpose:** List available Go versions from the mirror.
 
@@ -436,11 +448,11 @@ Testing registry latency...
 3. Sort descending (semver)
 4. Show last 20 versions, mark installed with ✓
 
-### 4.22 `wade go mirror`
+### 4.23 `wade go mirror`
 
 **Purpose:** Show current Go download mirror.
 
-### 4.23 `wade go mirror ls`
+### 4.24 `wade go mirror ls`
 
 **Purpose:** List Go download mirrors.
 
@@ -452,19 +464,19 @@ Testing registry latency...
 | npmmirror | https://npmmirror.com/mirrors/go/ |
 | aliyun | https://mirrors.aliyun.com/go/ |
 
-### 4.24 `wade go mirror use <name>`
+### 4.25 `wade go mirror use <name>`
 
 **Purpose:** Switch Go download mirror.
 
-### 4.25 `wade go mirror test`
+### 4.26 `wade go mirror test`
 
 **Purpose:** Test latency of all Go mirrors.
 
-### 4.26 `wade go proxy`
+### 4.27 `wade go proxy`
 
 **Purpose:** Show current Go module proxy.
 
-### 4.27 `wade go proxy ls`
+### 4.28 `wade go proxy ls`
 
 **Purpose:** List Go proxies.
 
@@ -475,13 +487,13 @@ Testing registry latency...
 | goproxy-cn | https://goproxy.cn,direct |
 | aliyun | https://mirrors.aliyun.com/goproxy/,direct |
 
-### 4.28 `wade go proxy use <name>`
+### 4.29 `wade go proxy use <name>`
 
 **Purpose:** Switch Go module proxy by running `go env -w GOPROXY=<url>`.
 
 ---
 
-### 4.29 `wade python ls`
+### 4.30 `wade python ls`
 
 **Purpose:** Detect and list system Python versions.
 
@@ -498,7 +510,7 @@ Testing registry latency...
 
 **Note:** Wade does NOT install Python interpreters. It relies on system Python and only manages pip mirrors.
 
-### 4.30 `wade python registry ls`
+### 4.31 `wade python registry ls`
 
 **Purpose:** List pip mirrors.
 
@@ -514,7 +526,7 @@ Testing registry latency...
 | tencent | https://mirrors.cloud.tencent.com/pypi/simple/ |
 | ustc | https://pypi.mirrors.ustc.edu.cn/simple/ |
 
-### 4.31 `wade python registry use <name>`
+### 4.32 `wade python registry use <name>`
 
 **Purpose:** Switch pip to a mirror by running `pip config set global.index-url <url>`.
 

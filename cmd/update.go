@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -55,16 +58,18 @@ appropriate binary for the current platform.`,
 
 		// Build download URL
 		platform := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
+		assetBase := fmt.Sprintf("wade-%s", platform)
+		archiveExtension := ".tar.gz"
 		if runtime.GOOS == "windows" {
-			platform += ".zip"
-		} else {
-			platform += ".tar.gz"
+			archiveExtension = ".zip"
 		}
 
-		url := fmt.Sprintf(
-			"https://github.com/%s/releases/download/%s/wade-%s",
-			repo, latest, platform,
+		releaseURL := fmt.Sprintf(
+			"https://github.com/%s/releases/download/%s/",
+			repo, latest,
 		)
+		url := releaseURL + assetBase + archiveExtension
+		checksumURL := releaseURL + assetBase + ".sha256"
 
 		// Download
 		fmt.Printf("Downloading %s...\n", url)
@@ -79,7 +84,7 @@ appropriate binary for the current platform.`,
 		}
 
 		// Write to temp file
-		tmpFile, err := os.CreateTemp("", "wade-update-*")
+		tmpFile, err := os.CreateTemp("", "wade-update-*"+archiveExtension)
 		if err != nil {
 			return err
 		}
@@ -95,7 +100,7 @@ appropriate binary for the current platform.`,
 			return fmt.Errorf("close download: %w", err)
 		}
 
-		if err := verifyChecksum(tmpFile.Name(), url+".sha256"); err != nil {
+		if err := verifyChecksum(tmpFile.Name(), checksumURL); err != nil {
 			return fmt.Errorf("verify downloaded update: %w", err)
 		}
 
@@ -109,13 +114,28 @@ appropriate binary for the current platform.`,
 			return fmt.Errorf("resolve binary path: %w", err)
 		}
 
+		extractedBin, err := os.CreateTemp(filepath.Dir(currentBin), ".wade-update-*")
+		if err != nil {
+			return fmt.Errorf("create extracted binary: %w", err)
+		}
+		extractedPath := extractedBin.Name()
+		if err := extractedBin.Close(); err != nil {
+			os.Remove(extractedPath)
+			return fmt.Errorf("close extracted binary: %w", err)
+		}
+		defer os.Remove(extractedPath)
+
+		if err := extractBinary(tmpFile.Name(), extractedPath); err != nil {
+			return fmt.Errorf("extract downloaded update: %w", err)
+		}
+
 		// Replace
 		backup := currentBin + ".old"
 		if err := os.Rename(currentBin, backup); err != nil {
 			return fmt.Errorf("backup current binary: %w", err)
 		}
 
-		if err := os.Rename(tmpFile.Name(), currentBin); err != nil {
+		if err := os.Rename(extractedPath, currentBin); err != nil {
 			// Restore backup
 			os.Rename(backup, currentBin)
 			return fmt.Errorf("install new binary: %w", err)
@@ -154,6 +174,90 @@ func getLatestVersion(repo string) (string, error) {
 	tag := text[tagStart : tagStart+tagEnd]
 
 	return tag, nil
+}
+
+func extractBinary(archivePath, destPath string) error {
+	switch {
+	case strings.HasSuffix(archivePath, ".tar.gz"):
+		return extractTarGzBinary(archivePath, destPath)
+	case strings.HasSuffix(archivePath, ".zip"):
+		return extractZipBinary(archivePath, destPath)
+	default:
+		return fmt.Errorf("unsupported update archive format: %s", archivePath)
+	}
+}
+
+func extractTarGzBinary(archivePath, destPath string) error {
+	archive, err := os.Open(archivePath)
+	if err != nil {
+		return fmt.Errorf("open archive: %w", err)
+	}
+	defer archive.Close()
+
+	gz, err := gzip.NewReader(archive)
+	if err != nil {
+		return fmt.Errorf("open gzip archive: %w", err)
+	}
+	defer gz.Close()
+
+	tarReader := tar.NewReader(gz)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("read tar archive: %w", err)
+		}
+		if header.Typeflag != tar.TypeReg || !isWadeBinary(header.Name) {
+			continue
+		}
+		return writeExtractedBinary(destPath, tarReader)
+	}
+	return fmt.Errorf("wade binary not found in archive")
+}
+
+func extractZipBinary(archivePath, destPath string) error {
+	archive, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return fmt.Errorf("open zip archive: %w", err)
+	}
+	defer archive.Close()
+
+	for _, file := range archive.File {
+		if file.FileInfo().IsDir() || !isWadeBinary(file.Name) {
+			continue
+		}
+		content, err := file.Open()
+		if err != nil {
+			return fmt.Errorf("open archived binary: %w", err)
+		}
+		err = writeExtractedBinary(destPath, content)
+		content.Close()
+		return err
+	}
+	return fmt.Errorf("wade binary not found in archive")
+}
+
+func isWadeBinary(name string) bool {
+	base := filepath.Base(name)
+	return base == "wade" || base == "wade.exe"
+}
+
+func writeExtractedBinary(destPath string, source io.Reader) error {
+	dest, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+	if err != nil {
+		return fmt.Errorf("open extracted binary: %w", err)
+	}
+	defer dest.Close()
+
+	if _, err := io.Copy(dest, source); err != nil {
+		return fmt.Errorf("write extracted binary: %w", err)
+	}
+	if err := dest.Chmod(0755); err != nil {
+		return fmt.Errorf("set extracted binary permissions: %w", err)
+	}
+	return nil
 }
 
 func verifyChecksum(archivePath, checksumURL string) error {

@@ -108,6 +108,7 @@ wade init               # Write .wade-version for current project
 ```bash
 wade node install 20        # Install Node 20
 wade node use 20            # Switch to Node 20
+wade node use               # Use the nearest .wade-version project pin
 wade node ls                # List installed versions
 wade node ls-remote         # Browse available versions
 wade node default 20        # Set default version
@@ -116,6 +117,17 @@ wade node mirror            # Show download source
 wade node mirror mirror     # Use npmmirror.com (fast in China)
 wade node mirror official   # Use nodejs.org
 ```
+
+#### Project Node version pinning
+
+Create a `.wade-version` file containing a Node version in a project directory:
+
+```bash
+echo 20.12.0 > .wade-version
+wade node use
+```
+
+`wade node use` searches the current directory and its parents up to your home directory, using the nearest `.wade-version`. An explicit version, such as `wade node use 22`, takes precedence.
 
 ### `wade registry` — npm/yarn/pnpm mirror
 

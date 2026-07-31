@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -45,11 +46,25 @@ var nodeInstallCmd = &cobra.Command{
 }
 
 var nodeUseCmd = &cobra.Command{
-	Use:   "use <version>",
+	Use:   "use [version]",
 	Short: "Switch to a Node.js version",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		version := args[0]
+		var version string
+		usingProjectVersion := false
+		if len(args) == 1 {
+			version = args[0]
+		} else {
+			var err error
+			version, err = node.FindProjectVersion()
+			if err != nil {
+				if errors.Is(err, node.ErrProjectVersionNotFound) {
+					return cobra.ExactArgs(1)(cmd, args)
+				}
+				return err
+			}
+			usingProjectVersion = true
+		}
 
 		// Try to resolve partial version against installed versions
 		installed, _ := node.InstalledVersions()
@@ -68,6 +83,9 @@ var nodeUseCmd = &cobra.Command{
 			}
 		}
 
+		if usingProjectVersion {
+			fmt.Printf("Using project version %s (.wade-version)\n", matched)
+		}
 		if err := node.UseVersion(matched); err != nil {
 			return err
 		}

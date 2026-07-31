@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -143,5 +144,67 @@ func TestCurrentVersion_Found(t *testing.T) {
 	}
 	if ver != "v20.12.0" {
 		t.Errorf("expected v20.12.0, got %s", ver)
+	}
+}
+
+func TestFindProjectVersion(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+
+	projectDir := filepath.Join(home, "project")
+	nestedDir := filepath.Join(projectDir, "packages", "app")
+	if err := os.MkdirAll(nestedDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, ".wade-version"), []byte(" v20.12.0 \nignored\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(nestedDir); err != nil {
+		t.Fatal(err)
+	}
+
+	version, err := FindProjectVersion()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if version != "v20.12.0" {
+		t.Errorf("FindProjectVersion() = %q, want %q", version, "v20.12.0")
+	}
+}
+
+func TestFindProjectVersion_NotFound(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+
+	nestedDir := filepath.Join(home, "project", "packages", "app")
+	if err := os.MkdirAll(nestedDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(nestedDir); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := FindProjectVersion(); !errors.Is(err, ErrProjectVersionNotFound) {
+		t.Errorf("FindProjectVersion() error = %v, want ErrProjectVersionNotFound", err)
 	}
 }
