@@ -93,12 +93,21 @@ wade status
 
 ## 命令一览
 
+> ⚡ **两个 `update` 别搞混：**
+>
+> | 命令 | 更新什么 |
+> |------|---------|
+> | `wade -u` / `wade update` | **wade 工具本身**——下载最新版 wade 二进制 |
+> | `wade node update` | **Node.js 运行时**——刷新已安装的 Node 版本 |
+
 | 命令 | 说明 |
 |------|------|
 | `wade -i` | 交互式设置（选 Node/Go/Python/All） |
 | `wade init -y` | 非交互式，自动配置全部（中国友好） |
+| `wade -u` / `wade update` | 更新 wade 工具本身 |
 | `wade node install 20` | 安装 Node 20 |
 | `wade node use 20` | 切换到 Node 20 |
+| `wade node update` | 更新已装 Node 版本到最新 |
 | `wade node mirror ls` | 选择 Node 下载源 |
 | `wade registry use taobao` | npm/yarn/pnpm 切淘宝 |
 | `wade go install 1.23` | 安装 Go 1.23 |

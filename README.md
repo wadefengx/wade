@@ -113,6 +113,13 @@ wade -u          # Same as above (shortcut flag)
 
 ## Commands
 
+> ⚡ **Two `update`s — don't mix them up:**
+>
+> | Command | What it updates |
+> |---------|-----------------|
+> | `wade -u` / `wade update` | **wade itself** (the tool) — downloads the latest wade binary |
+> | `wade node update` | **Node.js runtimes** — refreshes installed Node versions |
+
 ### `wade -i` / `wade init` — Setup wizard
 
 ```bash
