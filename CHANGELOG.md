@@ -4,6 +4,15 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.2] — 2026-08-01
+
+### Added
+
+- **`wade init -y` 自动配置 PATH**: 傻瓜式一条命令——`init -y` 现在在配置完 runtimes/镜像后自动执行 setup(--auto 语义),Windows 加用户 PATH,Unix 加 shell rc
+- **`wade -u` 下载超时 + 代理提示**: 60s 超时(之前 `http.Get` 无超时,github.com 被墙时 cmd 里干等),失败时提示设置 `HTTP_PROXY`(PowerShell 快是因为 profile 里有代理,cmd 没有)
+
+---
+
 ## [v0.4.1] — 2026-08-01
 
 ### Fixed

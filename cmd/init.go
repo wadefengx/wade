@@ -239,6 +239,15 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println()
 
+	// ── Auto PATH setup (init -y): make it truly one-command install ──
+	if autoYes {
+		fmt.Println("── Setting up PATH ──")
+		if err := runSetup(); err != nil {
+			fmt.Printf("⚠️  PATH setup skipped: %v\n", err)
+		}
+		fmt.Println()
+	}
+
 	// ── Summary ──
 	fmt.Println("✔  Setup complete!")
 	fmt.Println()

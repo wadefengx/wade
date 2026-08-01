@@ -80,9 +80,10 @@ func runUpdate() error {
 
 	// Download
 	fmt.Printf("Downloading %s...\n", url)
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
-		return fmt.Errorf("download: %w", err)
+		return fmt.Errorf("download: %w\n       Tip: if the download hangs/times out (common in CN networks), set a proxy and retry:\n       set HTTP_PROXY=http://127.0.0.1:7890 && set HTTPS_PROXY=http://127.0.0.1:7890", err)
 	}
 	defer resp.Body.Close()
 
