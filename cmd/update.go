@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -152,32 +153,34 @@ func runUpdate() error {
 	return nil
 }
 
+// getLatestVersion resolves the latest release tag via HTTP redirect
+// (https://github.com/REPO/releases/latest → 302 → .../releases/tag/vX.Y.Z).
+// Uses the redirect Location instead of the API to avoid rate limits.
 func getLatestVersion(repo string) (string, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
-	resp, err := http.Get(url)
+	url := fmt.Sprintf("https://github.com/%s/releases/latest", repo)
+
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // don't follow; grab Location
+		},
+	}
+	resp, err := client.Get(url)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
+	loc := resp.Header.Get("Location")
+	// Location looks like: https://github.com/wadefengx/wade/releases/tag/v0.3.3
+	idx := strings.LastIndex(loc, "/tag/")
+	if idx == -1 {
+		return "", fmt.Errorf("could not find tag in redirect Location %q", loc)
 	}
-
-	// Simple JSON tag_name extraction (no dependency needed)
-	text := string(body)
-	tagStart := strings.Index(text, `"tag_name":"`)
-	if tagStart == -1 {
-		return "", fmt.Errorf("could not find tag_name in response")
+	tag := loc[idx+len("/tag/"):]
+	if tag == "" {
+		return "", fmt.Errorf("empty tag in redirect Location %q", loc)
 	}
-	tagStart += len(`"tag_name":"`)
-	tagEnd := strings.Index(text[tagStart:], `"`)
-	if tagEnd == -1 {
-		return "", fmt.Errorf("could not parse tag_name")
-	}
-	tag := text[tagStart : tagStart+tagEnd]
-
 	return tag, nil
 }
 

@@ -42,9 +42,10 @@ case "$OS" in
     ;;
 esac
 
-# Get latest version
+# Get latest version — via HTTP redirect (no API rate limits)
+# https://github.com/REPO/releases/latest → 302 → .../releases/tag/vX.Y.Z
 echo "Fetching latest release..."
-LATEST=$(curl -sfL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+LATEST=$(curl -sfIL "https://github.com/$REPO/releases/latest" | grep -i '^location:' | sed -E 's|.*/tag/([^/]+).*|\1|' | tr -d '\r')
 
 if [ -z "$LATEST" ]; then
   echo -e "${RED}Error: could not determine latest version${NC}"

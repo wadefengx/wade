@@ -4,6 +4,17 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.4] — 2026-08-01
+
+### Fixed
+
+- **GitHub API rate limit broke install/update** (`API rate limit exceeded` on shared CN IPs): all version lookups now use the `releases/latest` HTTP **redirect Location** (`302 → /releases/tag/vX.Y.Z`) instead of `api.github.com` — zero API quota
+  - `scripts/install.ps1`: redirect-based version resolve + `latest/download` checksum fetch; fixed sha asset name (`wade-windows-amd64.sha256`, was wrongly `xxx.zip.sha256` which silently skipped verification)
+  - `scripts/install.sh`: `curl -sfIL` Location extraction
+  - `cmd/update.go`: `CheckRedirect` → `ErrUseLastResponse`, parse Location (also used by `wade -u` / startup check)
+
+---
+
 ## [v0.3.3] — 2026-08-01
 
 ### Added

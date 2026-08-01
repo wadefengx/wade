@@ -18,12 +18,27 @@ switch ($env:PROCESSOR_ARCHITECTURE) {
   default { Write-Host "❌ Unsupported architecture: $env:PROCESSOR_ARCHITECTURE" -ForegroundColor Red; exit 1 }
 }
 
-# --- Resolve latest release ---
+# --- Resolve latest release (HTTP redirect — no API rate limits) ---
 Write-Host "Fetching latest release..." -ForegroundColor Gray
-$release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -Headers @{ 'User-Agent' = 'wade-installer' }
-$version = $release.tag_name
+# https://github.com/$repo/releases/latest → 302 → .../releases/tag/vX.Y.Z
+try {
+  $resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -MaximumRedirection 0 -UseBasicParsing -ErrorAction Stop
+} catch {
+  # PS 5.1 throws on non-2xx; the redirect Location is in the exception response
+  $resp = $_.Exception.Response
+}
+$version = $null
+if ($resp -and $resp.Headers) {
+  $loc = $resp.Headers['Location']
+  if ($loc -match '/tag/([^/]+)') { $version = $Matches[1] }
+}
+if (-not $version) {
+  Write-Host "❌ Could not determine latest version" -ForegroundColor Red
+  exit 1
+}
 $fileName = "wade-windows-$arch.zip"
-$url = "https://github.com/$repo/releases/download/$version/$fileName"
+$shaName = "wade-windows-$arch.sha256"
+$url = "https://github.com/$repo/releases/latest/download/$fileName"
 Write-Host "Latest version: $version" -ForegroundColor Green
 
 # --- Download + verify checksum ---
@@ -34,9 +49,10 @@ $zipPath = Join-Path $tmp $fileName
 Write-Host "Downloading $fileName ..." -ForegroundColor Gray
 Invoke-WebRequest -Uri $url -OutFile $zipPath
 
-$shaAsset = $release.assets | Where-Object { $_.name -eq "$fileName.sha256" }
-if ($shaAsset) {
-  $expected = (Invoke-WebRequest -Uri $shaAsset.browser_download_url -UseBasicParsing).Content.Trim() -split '\s+' | Select-Object -First 1
+# Checksum: fetch the .sha256 asset via latest/download redirect (no API)
+$shaUrl = "https://github.com/$repo/releases/latest/download/$shaName"
+try {
+  $expected = (Invoke-WebRequest -Uri $shaUrl -UseBasicParsing -ErrorAction Stop).Content.Trim() -split '\s+' | Select-Object -First 1
   $actual = (Get-FileHash -Algorithm SHA256 -Path $zipPath).Hash.ToLower()
   if ($actual -ne $expected.ToLower()) {
     Write-Host "❌ Checksum mismatch! Expected $expected, got $actual" -ForegroundColor Red
@@ -44,6 +60,8 @@ if ($shaAsset) {
     exit 1
   }
   Write-Host "✓ Checksum verified" -ForegroundColor Green
+} catch {
+  Write-Host "⚠ Checksum unavailable ($($_.Exception.Message)) — continuing without verification" -ForegroundColor Yellow
 }
 
 # --- Extract ---
