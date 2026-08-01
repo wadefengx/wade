@@ -13,6 +13,7 @@ import (
 	"testing"
 )
 
+// TestVerifyChecksum
 func TestVerifyChecksum(t *testing.T) {
 	archive := filepath.Join(t.TempDir(), "wade-darwin-arm64.tar.gz")
 	content := []byte("release archive")

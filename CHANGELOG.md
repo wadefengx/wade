@@ -4,6 +4,18 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.3] — 2026-08-01
+
+### Fixed
+
+- **`wade -u` 在 CN 网络超时** (`context deadline exceeded`): update.go 只有 github.com redirect 单通道,但用户网络 api.github.com 通、github.com 被墙
+  - 版本解析双通道: API 优先(CN 可达)→ redirect 兜底
+  - 下载双通道: API 资产端点 `releases/assets/{id}`(→ CDN,CN 可达)→ github.com 直连兜底
+  - checksum 同样双通道
+  - 新增 `assetIDByName`(GitHub 资产 JSON 中 `"id"` 在 `"name"` 前,向后找会命中 uploader 的假 id)+ 单测
+
+---
+
 ## [v0.4.2] — 2026-08-01
 
 ### Added

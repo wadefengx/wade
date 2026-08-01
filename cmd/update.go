@@ -78,10 +78,16 @@ func runUpdate() error {
 	url := releaseURL + assetBase + archiveExtension
 	checksumURL := releaseURL + assetBase + ".sha256"
 
-	// Download
+	// Download — dual-channel: API asset endpoint first (api.github.com +
+	// release-assets CDN reachable from CN), github.com direct fallback.
 	fmt.Printf("Downloading %s...\n", url)
-	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Get(url)
+	dlClient := &http.Client{Timeout: 60 * time.Second}
+
+	resp, err := downloadAsset(dlClient, repo, latest, assetBase+archiveExtension)
+	if err != nil {
+		// Fallback: github.com direct
+		resp, err = dlClient.Get(url)
+	}
 	if err != nil {
 		return fmt.Errorf("download: %w\n       Tip: if the download hangs/times out (common in CN networks), set a proxy and retry:\n       set HTTP_PROXY=http://127.0.0.1:7890 && set HTTPS_PROXY=http://127.0.0.1:7890", err)
 	}
@@ -154,14 +160,19 @@ func runUpdate() error {
 	return nil
 }
 
-// getLatestVersion resolves the latest release tag via HTTP redirect
-// (https://github.com/REPO/releases/latest → 302 → .../releases/tag/vX.Y.Z).
-// Uses the redirect Location instead of the API to avoid rate limits.
+// getLatestVersion resolves the latest release tag.
+// Dual-channel: GitHub API first (reachable from CN networks), HTTP redirect
+// (https://github.com/REPO/releases/latest → 302 → .../releases/tag/vX.Y.Z)
+// as fallback for networks where api.github.com is blocked/rate-limited.
 func getLatestVersion(repo string) (string, error) {
+	// Channel 1: API (api.github.com reachable from CN)
+	if tag, err := getLatestVersionAPI(repo); err == nil {
+		return tag, nil
+	}
+	// Channel 2: HTTP redirect (github.com, no API quota)
 	url := fmt.Sprintf("https://github.com/%s/releases/latest", repo)
-
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: 10 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse // don't follow; grab Location
 		},
@@ -183,6 +194,104 @@ func getLatestVersion(repo string) (string, error) {
 		return "", fmt.Errorf("empty tag in redirect Location %q", loc)
 	}
 	return tag, nil
+}
+
+// getLatestVersionAPI resolves the latest tag via the GitHub REST API.
+func getLatestVersionAPI(repo string) (string, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "wade-update")
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("api returned HTTP %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	text := string(body)
+	tagStart := strings.Index(text, `"tag_name":"`)
+	if tagStart == -1 {
+		return "", fmt.Errorf("could not find tag_name in response")
+	}
+	tagStart += len(`"tag_name":"`)
+	tagEnd := strings.Index(text[tagStart:], `"`)
+	if tagEnd == -1 {
+		return "", fmt.Errorf("could not parse tag_name")
+	}
+	return text[tagStart : tagStart+tagEnd], nil
+}
+
+// downloadAsset downloads a release asset via the API endpoint
+// api.github.com/repos/{repo}/releases/assets/{id}, which redirects to the
+// release-assets CDN — reachable from CN networks (unlike github.com).
+// assetName is e.g. "wade-windows-amd64.zip".
+func downloadAsset(client *http.Client, repo, version, assetName string) (*http.Response, error) {
+	apiClient := &http.Client{Timeout: 15 * time.Second}
+	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo), nil)
+	req.Header.Set("User-Agent", "wade-update")
+	relResp, err := apiClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer relResp.Body.Close()
+	if relResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("api HTTP %d", relResp.StatusCode)
+	}
+
+	body, err := io.ReadAll(relResp.Body)
+	if err != nil {
+		return nil, err
+	}
+	// Find asset id by name. GitHub asset JSON order:
+	// {"url":..., "id":123, "node_id":..., "name":"wade-...zip", ...}
+	// So the asset's own "id" appears BEFORE "name" — search backwards.
+	assetID, err := assetIDByName(string(body), assetName)
+	if err != nil {
+		return nil, err
+	}
+
+	assetURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/assets/%s", repo, assetID)
+	dlReq, _ := http.NewRequest("GET", assetURL, nil)
+	dlReq.Header.Set("Accept", "application/octet-stream")
+	dlReq.Header.Set("User-Agent", "wade-update")
+	return client.Do(dlReq)
+}
+
+// assetIDByName extracts a release asset's id from the release JSON body.
+// GitHub orders asset fields as {"url":..., "id":123, "node_id":...,
+// "name":"...", ...} — the id sits BEFORE the name, so we search backwards
+// from the name match (the nearest preceding "id": is the asset's own).
+func assetIDByName(body, assetName string) (string, error) {
+	needle := fmt.Sprintf(`"name":%q`, assetName)
+	idx := strings.Index(body, needle)
+	if idx == -1 {
+		return "", fmt.Errorf("asset %s not found in release", assetName)
+	}
+	before := body[:idx]
+	idStart := strings.LastIndex(before, `"id":`)
+	if idStart == -1 {
+		return "", fmt.Errorf("asset %s has no id", assetName)
+	}
+	idStart += len(`"id":`)
+	idEnd := strings.IndexAny(before[idStart:], `,}`)
+	if idEnd == -1 {
+		return "", fmt.Errorf("asset %s id parse failed", assetName)
+	}
+	id := before[idStart : idStart+idEnd]
+	if id == "" {
+		return "", fmt.Errorf("asset %s id is empty", assetName)
+	}
+	return id, nil
 }
 
 func extractBinary(archivePath, destPath string) error {
@@ -270,21 +379,34 @@ func writeExtractedBinary(destPath string, source io.Reader) error {
 }
 
 func verifyChecksum(archivePath, checksumURL string) error {
-	resp, err := http.Get(checksumURL)
-	if err != nil {
-		return fmt.Errorf("download checksum: %w", err)
-	}
-	defer resp.Body.Close()
+	// Dual-channel checksum fetch: API asset endpoint first (CN-reachable),
+	// github.com direct fallback. shaName is like "wade-windows-amd64.sha256".
+	shaName := filepath.Base(checksumURL)
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download checksum failed: HTTP %d", resp.StatusCode)
+	var body []byte
+	if resp, err := downloadAsset(&http.Client{Timeout: 30 * time.Second}, "wadefengx/wade", "", shaName); err == nil {
+		b, rerr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if rerr == nil && resp.StatusCode == http.StatusOK {
+			body = b
+		}
+	}
+	if body == nil {
+		resp, err := http.Get(checksumURL)
+		if err != nil {
+			return fmt.Errorf("download checksum: %w", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("download checksum failed: HTTP %d", resp.StatusCode)
+		}
+		body, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("read checksum: %w", err)
+		}
 	}
 
-	checksumFile, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read checksum: %w", err)
-	}
-	fields := strings.Fields(string(checksumFile))
+	fields := strings.Fields(string(body))
 	if len(fields) == 0 {
 		return fmt.Errorf("invalid checksum file")
 	}
