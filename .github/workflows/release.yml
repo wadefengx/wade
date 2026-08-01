@@ -76,7 +76,7 @@ jobs:
         uses: actions/download-artifact@v4
 
       - name: Stage installer
-        run: cp scripts/install.sh install.sh
+        run: cp scripts/install.sh install.sh && cp scripts/install.ps1 install.ps1
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -85,6 +85,7 @@ jobs:
           files: |
             wade-*/*
             install.sh
+            install.ps1
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -33,6 +33,7 @@ check "cross-compile windows"        "GOOS=windows go build ./..."
 check "cross-compile linux/arm64"    "GOOS=linux GOARCH=arm64 go build ./..."
 check "shellcheck install.sh"        "bash -n scripts/install.sh"
 check "release-shas.sh syntax"       "bash -n scripts/release-shas.sh"
+check "install.ps1 present"          "test -f scripts/install.ps1 && grep -q 'wade.exe' scripts/install.ps1"
 check "scoop manifest JSON valid"    "python3 -m json.tool scripts/wade.json >/dev/null"
 check "docs HTML well-formed"        "python3 -c \"from html.parser import HTMLParser; HTMLParser().feed(open('docs/index.html').read())\""
 

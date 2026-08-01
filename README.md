@@ -41,13 +41,24 @@ brew install wadefengx/tap/wade
 wade -i
 ```
 
-### Windows — Scoop
+### Windows — one-line installer (no Scoop needed)
+
+```powershell
+# PowerShell (5.1+ built into Windows, works from cmd too)
+irm https://github.com/wadefengx/wade/releases/latest/download/install.ps1 | iex
+```
+
+Installs to `%LOCALAPPDATA%\wade`, adds it to your user PATH, verifies the SHA256 checksum. Open a **new** terminal afterwards, then `wade -i`.
+
+### Windows — Scoop (if you already use Scoop)
 
 ```powershell
 scoop bucket add wade https://github.com/wadefengx/scoop-wade
 scoop install wade
 wade -i
 ```
+
+> ⚠️ No Scoop yet? Install it first: `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; irm get.scoop.sh | iex` — or just use the one-line installer above.
 
 ### Linux / macOS — curl installer
 

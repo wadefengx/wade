@@ -254,6 +254,11 @@
           <div class="code-block"><code>scoop bucket add wade https://github.com/wadefengx/scoop-wade &amp;&amp; scoop install wade</code><button type="button" class="copy-button" data-copy="scoop bucket add wade https://github.com/wadefengx/scoop-wade &amp;&amp; scoop install wade" data-i18n="copy">Copy</button></div>
         </article>
         <article class="card install-card">
+          <h3 data-i18n="psTitle">🪟 PowerShell (Windows)</h3>
+          <p data-i18n="psDescription">One-command installer — no Scoop required, works in cmd too.</p>
+          <div class="code-block"><code>irm https://github.com/wadefengx/wade/releases/latest/download/install.ps1 | iex</code><button type="button" class="copy-button" data-copy="irm https://github.com/wadefengx/wade/releases/latest/download/install.ps1 | iex" data-i18n="copy">Copy</button></div>
+        </article>
+        <article class="card install-card">
           <h3 data-i18n="curlTitle">⌘ Curl (macOS / Linux)</h3>
           <p data-i18n="curlDescription">Download and run the latest release installer.</p>
           <div class="code-block"><code>curl -fsSL https://github.com/wadefengx/wade/releases/latest/download/install.sh | bash</code><button type="button" class="copy-button" data-copy="curl -fsSL https://github.com/wadefengx/wade/releases/latest/download/install.sh | bash" data-i18n="copy">Copy</button></div>
@@ -330,6 +335,7 @@
         featureSetupTitle: "🔧 Guided setup", featureSetupBefore: "Use ", featureSetupMiddle: " for the interactive wizard or ", featureSetupAfter: " for non-interactive defaults.",
         installTitle: "Installation", brewTitle: "🍺 Homebrew (macOS)", brewDescription: "Install Wade from the official Homebrew tap.",
         scoopTitle: "🥄 Scoop (Windows)", scoopDescription: "Add the Wade bucket, then install the package.",
+        psTitle: "🪟 PowerShell (Windows)", psDescription: "One-command installer — no Scoop required, works in cmd too.",
         curlTitle: "⌘ Curl (macOS / Linux)", curlDescription: "Download and run the latest release installer.", copy: "Copy", copied: "✓ Copied!",
         installHintBefore: "After installation, run ", installHintAfter: " to configure your runtimes, mirrors, and PATH.",
         commandsTitle: "Command cheatsheet", commandsDescription: "Start with the wizard, then use the focused commands below to manage versions, mirrors, registries, and shell integration.",
@@ -367,6 +373,7 @@
         featureSetupTitle: "🔧 引导式配置", featureSetupBefore: "使用 ", featureSetupMiddle: " 启动交互式向导，或使用 ", featureSetupAfter: " 应用非交互式默认配置。",
         installTitle: "安装", brewTitle: "🍺 Homebrew（macOS）", brewDescription: "从官方 Homebrew tap 安装 Wade。",
         scoopTitle: "🥄 Scoop（Windows）", scoopDescription: "添加 Wade bucket 后安装软件包。",
+        psTitle: "🪟 PowerShell（Windows）", psDescription: "一条命令安装，无需 Scoop，cmd 也能用。",
         curlTitle: "⌘ Curl（macOS / Linux）", curlDescription: "下载并运行最新版本的安装脚本。", copy: "复制", copied: "✓ 已复制！",
         installHintBefore: "安装后，运行 ", installHintAfter: " 配置运行时、镜像源和 PATH。",
         commandsTitle: "命令速查表", commandsDescription: "从向导开始，然后使用下方的专用命令管理版本、镜像源、注册表和 shell 集成。",

@@ -11,7 +11,7 @@
     }
   },
   "post_install": [
-    "wade.exe setup"
+    "wade.exe setup --auto"
   ],
   "notes": "Add \"$env:USERPROFILE\\.wade\\shims\" to PATH to enable Wade-managed Node.js shims.",
   "checkver": {
