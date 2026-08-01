@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/wadefengx/wade/internal/config"
@@ -17,6 +18,23 @@ func ShimDir() (string, error) {
 		return "", err
 	}
 	return filepath.Join(dir, "shims"), nil
+}
+
+// shimTargets returns the shim name → target path pairs for a Node version.
+// Windows: node.exe/npm.cmd/npx.cmd at version root. Unix: bin/node etc.
+func shimTargets(versionRoot, versionBin string, isWindows bool) []struct{ name, target string } {
+	if isWindows {
+		return []struct{ name, target string }{
+			{"node.exe", filepath.Join(versionRoot, "node.exe")},
+			{"npm.cmd", filepath.Join(versionRoot, "npm.cmd")},
+			{"npx.cmd", filepath.Join(versionRoot, "npx.cmd")},
+		}
+	}
+	return []struct{ name, target string }{
+		{"node", filepath.Join(versionBin, "node")},
+		{"npm", filepath.Join(versionBin, "npm")},
+		{"npx", filepath.Join(versionBin, "npx")},
+	}
 }
 
 // UseVersion switches the active Node version by updating shim symlinks
@@ -41,14 +59,12 @@ func UseVersion(version string) error {
 		return fmt.Errorf("create shims dir: %w", err)
 	}
 
+	// Windows layout: node.exe at version root, npm/npx as .cmd wrappers.
+	// Unix layout: bin/node, bin/npm, bin/npx.
 	versionBin := filepath.Join(dir, "versions", version, "bin")
+	versionRoot := filepath.Join(dir, "versions", version)
 
-	// Create shims for node, npm, npx
-	shims := []struct{ name, target string }{
-		{"node", filepath.Join(versionBin, "node")},
-		{"npm", filepath.Join(versionBin, "npm")},
-		{"npx", filepath.Join(versionBin, "npx")},
-	}
+	shims := shimTargets(versionRoot, versionBin, runtime.GOOS == "windows")
 
 	for _, s := range shims {
 		target := filepath.Join(shimDir, s.name)
@@ -65,8 +81,15 @@ func UseVersion(version string) error {
 	}
 
 	// Also try yarn and pnpm if they exist in this version
-	for _, optional := range []string{"yarn", "pnpm"} {
-		target := filepath.Join(versionBin, optional)
+	optionalNames := []string{"yarn", "pnpm"}
+	if runtime.GOOS == "windows" {
+		optionalNames = []string{"yarn.cmd", "pnpm.cmd"}
+	}
+	for _, optional := range optionalNames {
+		target := filepath.Join(versionRoot, optional)
+		if _, err := os.Stat(target); err != nil {
+			target = filepath.Join(versionBin, optional)
+		}
 		if _, err := os.Stat(target); err == nil {
 			shim := filepath.Join(shimDir, optional)
 			if err := os.Remove(shim); err != nil && !os.IsNotExist(err) {

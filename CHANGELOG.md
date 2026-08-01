@@ -4,6 +4,17 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.8] — 2026-08-01
+
+### Fixed
+
+- **Windows `wade node use` 失败**: shim 逻辑写死 Unix 路径 `versions/<v>/bin/node`,但 Windows 的 Node 结构是 `node.exe`/`npm.cmd`/`npx.cmd` 在**版本根目录**(无 bin/)。symlink 失败 fallback 到硬链接时源路径不存在 → "system cannot find the path specified"
+  - `shimTargets()` 按平台返回正确的 shim 名 + 目标路径(Windows: node.exe/npm.cmd/npx.cmd @ root;Unix: bin/node 等)
+  - yarn/pnpm 同样平台分流(yarn.cmd/pnpm.cmd @ root)
+  - 单元测试: Windows + Unix 两条路径分支
+
+---
+
 ## [v0.3.7] — 2026-08-01
 
 ### Fixed
