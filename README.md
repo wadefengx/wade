@@ -136,7 +136,7 @@ wade node use 20            # Switch to Node 20
 wade node use               # Use the nearest .wade-version project pin
 wade node ls                # List installed versions
 wade node ls-remote         # Browse available versions
-wade node default 20        # Set default version
+wade node default 20        # Set default version (and switch to it)
 wade node uninstall 18      # Remove a version
 wade node update            # Update ALL installed versions to latest
 wade node update 18         # Update the Node 18 line to latest

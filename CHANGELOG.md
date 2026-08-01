@@ -4,6 +4,14 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.7] — 2026-08-01
+
+### Fixed
+
+- **`wade node default` 只改 config 不切 shim**: `default <version>` 之前只写 `config.toml` 的 DefaultVersion,shim 仍指向 current → `node -v` 不变,用户困惑。现在 `default` 同时调用 `UseVersion`(切换 shim + current 文件),**立即生效**(与 nvm alias default 行为一致)
+
+---
+
 ## [v0.4.6] — 2026-08-01
 
 ### Fixed

@@ -211,7 +211,7 @@ var nodeLsRemoteCmd = &cobra.Command{
 
 var nodeDefaultCmd = &cobra.Command{
 	Use:   "default <version>",
-	Short: "Set the default Node.js version",
+	Short: "Set the default Node.js version (and switch to it)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		version := args[0]
@@ -231,6 +231,13 @@ var nodeDefaultCmd = &cobra.Command{
 		cfg.DefaultVersion = version
 		if err := config.Save(cfg); err != nil {
 			return err
+		}
+
+		// Switch shims to it too — "default" should take effect immediately,
+		// not just on the next install. (nvm alias default behaves this way.)
+		if err := node.UseVersion(version); err != nil {
+			fmt.Printf("Default Node version set to %s (but switch failed: %v)\n", version, err)
+			return nil
 		}
 
 		fmt.Printf("Default Node version set to %s\n", version)
