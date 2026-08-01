@@ -339,13 +339,10 @@ func UseVersion(version string) error {
 		if _, err := os.Stat(target); err != nil {
 			continue
 		}
-		// shim name must be extensionless on Windows too — cmd's PATHEXT
-		// resolves `go` → go.exe, so the shim points at the .exe target.
-		shimName := name
-		if runtime.GOOS == "windows" {
-			shimName = strings.TrimSuffix(name, filepath.Ext(name))
-		}
-		shim := filepath.Join(shimDir, shimName)
+		// shim KEEPS the extension on Windows (go.exe) — cmd/PowerShell's
+		// PATHEXT only matches .exe/.cmd/.bat; an extensionless file is
+		// never found. (node shims are node.exe for the same reason.)
+		shim := filepath.Join(shimDir, name)
 		if err := os.Remove(shim); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("remove existing shim for %s: %w", name, err)
 		}

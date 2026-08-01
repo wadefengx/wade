@@ -9,9 +9,10 @@ import (
 	"github.com/wadefengx/wade/internal/config"
 )
 
-// TestUseVersionWindowsShims: on Windows the shim must resolve go.exe —
-// UseVersion looks up go.exe/gofmt.exe and creates extensionless shims
-// (`go` → shims/go pointing at go.exe) so cmd's PATHEXT finds them.
+// TestUseVersionWindowsShims: on Windows the shim files keep the .exe
+// extension (shims/go.exe → versions/.../bin/go.exe) — cmd/PowerShell's
+// PATHEXT only matches .exe/.cmd/.bat, so extensionless shims are never
+// found. (node shims are node.exe for the same reason.)
 func TestUseVersionWindowsShims(t *testing.T) {
 	// Redirect HOME so WadeDir() resolves into the temp dir, not ~/.wade
 	oldHome := os.Getenv("HOME")
@@ -46,9 +47,14 @@ func TestUseVersionWindowsShims(t *testing.T) {
 	}
 
 	shimDir := filepath.Join(dir, "shims")
-	for _, want := range []string{"go", "gofmt"} {
-		if _, err := os.Stat(filepath.Join(shimDir, want)); err != nil {
-			t.Errorf("shim %q not created: %v", want, err)
+	// On Windows the shim must be go.exe (PATHEXT); on Unix it's `go`.
+	want := []string{"go", "gofmt"}
+	if runtime.GOOS == "windows" {
+		want = []string{"go.exe", "gofmt.exe"}
+	}
+	for _, w := range want {
+		if _, err := os.Stat(filepath.Join(shimDir, w)); err != nil {
+			t.Errorf("shim %q not created: %v", w, err)
 		}
 	}
 }

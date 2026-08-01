@@ -4,6 +4,14 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.5.1] — 2026-08-01
+
+### Fixed
+
+- **`wade go use` 后 `go` 仍找不到(v0.5.0 回归)**: v0.5.0 把 Windows shim 名写成无扩展名 `go`——但 cmd/PowerShell 的 **PATHEXT 只匹配 `.exe/.cmd/.bat`**,无扩展名文件永远不会被找到。node shim 一直叫 `node.exe`(保留扩展名)所以能用。**修复**: go shim 在 Windows 保留 `.exe`(`shims/go.exe` → `versions/.../bin/go.exe`)
+
+---
+
 ## [v0.5.0] — 2026-08-01
 
 ### Fixed
