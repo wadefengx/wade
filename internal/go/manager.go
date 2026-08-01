@@ -2,6 +2,7 @@ package golang
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -78,6 +79,9 @@ func FetchRemoteVersions(mirror string) ([]string, error) {
 func PlatformFilename(version string) string {
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
+	if goos == "windows" {
+		return fmt.Sprintf("%s.%s-%s.zip", version, goos, goarch)
+	}
 	return fmt.Sprintf("%s.%s-%s.tar.gz", version, goos, goarch)
 }
 
@@ -141,7 +145,7 @@ func Install(version, mirror string) error {
 	defer os.RemoveAll(tmpDir)
 
 	url := DownloadURL(version, mirror)
-	archivePath := filepath.Join(tmpDir, "go.tar.gz")
+	archivePath := filepath.Join(tmpDir, PlatformFilename(version))
 
 	fmt.Printf("📥 Downloading %s...\n", url)
 	resp, err := http.Get(url)
@@ -161,51 +165,57 @@ func Install(version, mirror string) error {
 	io.Copy(f, resp.Body)
 	f.Close()
 
-	// Go tar.gz has a top-level `go/` directory
+	// Go archives (tar.gz on unix, zip on windows) have a top-level `go/` directory
 	// Extract to temp, then move `go/` → versions/<version>/
 	extractDir := filepath.Join(tmpDir, "extract")
 	os.MkdirAll(extractDir, 0755)
 
-	gzr, err := gzip.NewReader(openFile(archivePath))
-	if err != nil {
-		return err
-	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
+	if strings.HasSuffix(archivePath, ".zip") {
+		if err := extractGoZip(archivePath, extractDir); err != nil {
+			return err
 		}
+	} else {
+		gzr, err := gzip.NewReader(openFile(archivePath))
 		if err != nil {
 			return err
 		}
+		defer gzr.Close()
 
-		// Strip the leading `go/` directory
-		parts := strings.SplitN(header.Name, "/", 2)
-		if len(parts) < 2 {
-			continue
-		}
-		relPath := parts[1]
-		if relPath == "" {
-			continue
-		}
+		tr := tar.NewReader(gzr)
+		for {
+			header, err := tr.Next()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return err
+			}
 
-		target := filepath.Join(extractDir, relPath)
-		switch header.Typeflag {
-		case tar.TypeDir:
-			os.MkdirAll(target, 0755)
-		case tar.TypeReg:
-			os.MkdirAll(filepath.Dir(target), 0755)
-			out, _ := os.Create(target)
-			io.Copy(out, tr)
-			out.Close()
-			os.Chmod(target, os.FileMode(header.Mode))
-		case tar.TypeSymlink:
-			os.MkdirAll(filepath.Dir(target), 0755)
-			os.Remove(target)
-			os.Symlink(header.Linkname, target)
+			// Strip the leading `go/` directory
+			parts := strings.SplitN(header.Name, "/", 2)
+			if len(parts) < 2 {
+				continue
+			}
+			relPath := parts[1]
+			if relPath == "" {
+				continue
+			}
+
+			target := filepath.Join(extractDir, relPath)
+			switch header.Typeflag {
+			case tar.TypeDir:
+				os.MkdirAll(target, 0755)
+			case tar.TypeReg:
+				os.MkdirAll(filepath.Dir(target), 0755)
+				out, _ := os.Create(target)
+				io.Copy(out, tr)
+				out.Close()
+				os.Chmod(target, os.FileMode(header.Mode))
+			case tar.TypeSymlink:
+				os.MkdirAll(filepath.Dir(target), 0755)
+				os.Remove(target)
+				os.Symlink(header.Linkname, target)
+			}
 		}
 	}
 
@@ -217,6 +227,51 @@ func Install(version, mirror string) error {
 	}
 
 	fmt.Printf("✅ Go %s installed\n", version)
+	return nil
+}
+
+// extractGoZip extracts a Go zip archive (top-level `go/` dir) into dest
+func extractGoZip(src, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		parts := strings.SplitN(f.Name, "/", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		relPath := parts[1]
+		if relPath == "" {
+			continue
+		}
+		target := filepath.Join(dest, relPath)
+
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(target, 0755)
+			continue
+		}
+		os.MkdirAll(filepath.Dir(target), 0755)
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		out, err := os.Create(target)
+		if err != nil {
+			rc.Close()
+			return err
+		}
+		if _, err := io.Copy(out, rc); err != nil {
+			out.Close()
+			rc.Close()
+			return err
+		}
+		out.Close()
+		rc.Close()
+		os.Chmod(target, os.FileMode(f.Mode()))
+	}
 	return nil
 }
 

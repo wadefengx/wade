@@ -215,6 +215,77 @@ var nodeUninstallCmd = &cobra.Command{
 	},
 }
 
+var nodeUpdateCmd = &cobra.Command{
+	Use:   "update [version]",
+	Short: "Update installed Node.js versions to the latest patch",
+	Long: `Update installed Node.js versions to the latest available release.
+With a version argument, update that major line (e.g. "wade node update 18").
+Without arguments, update ALL installed versions.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+		mirror := cfg.NodeMirror
+
+		// Determine target versions to update
+		var targets []string
+		if len(args) == 1 {
+			raw := args[0]
+			if !strings.HasPrefix(raw, "v") {
+				raw = "v" + raw
+			}
+			targets = []string{raw}
+		} else {
+			installed, err := node.InstalledVersions()
+			if err != nil {
+				return err
+			}
+			if len(installed) == 0 {
+				fmt.Println("📭 No Node.js versions installed.")
+				fmt.Println("Run 'wade node install <version>' to install one.")
+				return nil
+			}
+			targets = installed
+		}
+
+		updated := 0
+		for _, t := range targets {
+			// Extract major for remote resolution: v20.20.2 → "20"
+			major := strings.TrimPrefix(t, "v")
+			if idx := strings.Index(major, "."); idx >= 0 {
+				major = major[:idx]
+			}
+
+			latest, err := node.ResolveVersion(major, mirror)
+			if err != nil {
+				fmt.Printf("⚠ %s: resolve failed: %v\n", t, err)
+				continue
+			}
+
+			if latest == t {
+				fmt.Printf("✓ %s already latest\n", t)
+				continue
+			}
+
+			fmt.Printf("⬆ %s → %s\n", t, latest)
+			if err := node.Install(latest, mirror); err != nil {
+				fmt.Printf("⚠ update %s → %s: %v\n", t, latest, err)
+				continue
+			}
+			updated++
+		}
+
+		if updated == 0 {
+			fmt.Println("Nothing to update.")
+		} else {
+			fmt.Printf("✅ Updated %d version(s)\n", updated)
+		}
+		return nil
+	},
+}
+
 var nodeCurrentCmd = &cobra.Command{
 	Use:   "current",
 	Short: "Print the currently active Node.js version",
@@ -369,6 +440,7 @@ func init() {
 	nodeCmd.AddCommand(nodeLsRemoteCmd)
 	nodeCmd.AddCommand(nodeDefaultCmd)
 	nodeCmd.AddCommand(nodeUninstallCmd)
+	nodeCmd.AddCommand(nodeUpdateCmd)
 	nodeCmd.AddCommand(nodeCurrentCmd)
 	nodeCmd.AddCommand(nodeMirrorCmd)
 	nodeMirrorCmd.AddCommand(nodeMirrorLsCmd)

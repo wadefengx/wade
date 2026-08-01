@@ -4,6 +4,27 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.2] — 2026-08-01
+
+### Fixed
+
+- **Windows `wade node install` → `gzip: invalid header`**: Windows 下载的是 `.zip` 但代码硬编码 tar.gz 解压。新增 `extractArchive` 按扩展名分流(zip/tar.gz),Node + Go 管理器同修(Go 的 Windows 资产也是 zip)。用真实 node-v20.20.2-win-x64.zip 回归测试验证。
+
+### Added
+
+- **`wade node update [version]`**: 更新已装 Node 版本到最新——带参更新指定 major 线,无参更新全部已装版本
+
+---
+
+## [v0.3.1] — 2026-08-01
+
+### Added
+
+- **Windows one-line installer** (`install.ps1`): `irm .../install.ps1 | iex` — 下载 zip + SHA256 校验 + 解压到 %LOCALAPPDATA%\wade + 自动加用户 PATH,无需 Scoop、cmd/PowerShell 通用
+- Scoop manifest `post_install` 改为非交互 `setup --auto`(原交互式会卡死 scoop 安装)
+
+---
+
 ## [v0.3.0] — 2026-07-31
 
 ### Added

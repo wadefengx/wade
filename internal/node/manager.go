@@ -2,6 +2,7 @@ package node
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -60,7 +61,7 @@ func Install(version, mirror string) error {
 
 	// Download
 	url := DownloadURL(version, mirror)
-	archivePath := filepath.Join(tmpDir, "node.tar.gz")
+	archivePath := filepath.Join(tmpDir, "node-"+PlatformFilename(version))
 
 	fmt.Printf("Downloading %s...\n", url)
 	if err := downloadFile(url, archivePath); err != nil {
@@ -70,7 +71,7 @@ func Install(version, mirror string) error {
 	// Extract
 	destDir := filepath.Join(dir, "versions", version)
 	fmt.Printf("Extracting to %s...\n", destDir)
-	if err := extractTarGz(archivePath, destDir); err != nil {
+	if err := extractArchive(archivePath, destDir); err != nil {
 		return fmt.Errorf("extract: %w", err)
 	}
 
@@ -122,6 +123,68 @@ func downloadFile(url, dest string) error {
 
 	_, err = io.Copy(f, resp.Body)
 	return err
+}
+
+// extractArchive dispatches to the right extractor based on file extension
+func extractArchive(src, dest string) error {
+	if strings.HasSuffix(src, ".zip") {
+		return extractZip(src, dest)
+	}
+	return extractTarGz(src, dest)
+}
+
+func extractZip(src, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	// Remove dest if exists
+	os.RemoveAll(dest)
+
+	for _, f := range r.File {
+		// Node zip archives are structured as `node-v18.20.0-win-x64/...`
+		// Strip the first directory component
+		parts := strings.SplitN(f.Name, "/", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		relPath := parts[1]
+		if relPath == "" {
+			continue
+		}
+		target := filepath.Join(dest, relPath)
+
+		if f.FileInfo().IsDir() {
+			if err := os.MkdirAll(target, 0755); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return err
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		outFile, err := os.Create(target)
+		if err != nil {
+			rc.Close()
+			return err
+		}
+		if _, err := io.Copy(outFile, rc); err != nil {
+			outFile.Close()
+			rc.Close()
+			return err
+		}
+		outFile.Close()
+		rc.Close()
+		os.Chmod(target, os.FileMode(f.Mode()))
+	}
+
+	return nil
 }
 
 func extractTarGz(src, dest string) error {
