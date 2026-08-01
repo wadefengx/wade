@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/wadefengx/wade/internal/config"
@@ -31,16 +32,42 @@ type RemoteVersion struct {
 	} `json:"files"`
 }
 
-// FetchRemoteVersions fetches Go versions from the remote mirror
-func FetchRemoteVersions(mirror string) ([]string, error) {
-	url := strings.TrimRight(mirror, "/")
-	if strings.Contains(url, "go.dev") {
-		url = "https://go.dev/dl/?mode=json"
-	} else {
-		url += "/?mode=json"
+// ResolveVersion resolves a partial version (e.g. "1.23") to the latest
+// matching release (e.g. "go1.23.12") by querying the mirror's JSON API.
+// Exact versions (e.g. "go1.23.12" or "1.23.12") pass through.
+func ResolveVersion(input, mirror string) (string, error) {
+	ver := input
+	if !strings.HasPrefix(ver, "go") {
+		ver = "go" + ver
 	}
 
-	resp, err := http.Get(url)
+	// Exact version (go1.23.12) — no lookup needed
+	if parts := strings.SplitN(strings.TrimPrefix(ver, "go"), ".", 3); len(parts) == 3 {
+		return ver, nil
+	}
+
+	versions, err := FetchRemoteVersions(mirror)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch Go version list: %w", err)
+	}
+	prefix := ver + "."
+	for _, v := range versions {
+		if strings.HasPrefix(v, prefix) {
+			return v, nil
+		}
+	}
+	return "", fmt.Errorf("no Go version matches %q", input)
+}
+
+// FetchRemoteVersions fetches Go versions from the remote mirror.
+// Uses ?mode=json&include=all: the default API only returns the two latest
+// minor releases (go1.26, go1.25), which breaks `install 1.23` — older
+// version files still exist on the mirrors, they're just not listed.
+func FetchRemoteVersions(mirror string) ([]string, error) {
+	url := strings.TrimRight(mirror, "/") + "/?mode=json&include=all"
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("fetch %s: %w", url, err)
 	}

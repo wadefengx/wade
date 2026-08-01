@@ -28,15 +28,20 @@ var goInstallCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ver := args[0]
-		if !strings.HasPrefix(ver, "go") {
-			ver = "go" + ver
-		}
 		cfg, _ := config.Load()
 		mirror := cfg.GoMirror
 		if mirror == "" {
 			mirror = "https://go.dev/dl/"
 		}
-		return golang.Install(ver, mirror)
+		// Resolve partial versions (1.23 → go1.23.x) before install
+		resolved, err := golang.ResolveVersion(ver, mirror)
+		if err != nil {
+			return err
+		}
+		if resolved != ver {
+			fmt.Printf("📥 Resolved %s → %s\n", ver, resolved)
+		}
+		return golang.Install(resolved, mirror)
 	},
 }
 
@@ -116,10 +121,27 @@ var goLsRemoteCmd = &cobra.Command{
 }
 
 var goMirrorCmd = &cobra.Command{
-	Use:   "mirror",
+	Use:   "mirror [name]",
 	Short: "Show or set Go download mirror",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, _ := config.Load()
+
+		// With a name: switch mirror (implicit `use`)
+		if len(args) == 1 {
+			m, ok := python.FindGoMirror(args[0])
+			if !ok {
+				return fmt.Errorf("unknown mirror: %s — use 'wade go mirror ls' to see available", args[0])
+			}
+			cfg.GoMirror = m.URL
+			if err := config.Save(cfg); err != nil {
+				return err
+			}
+			fmt.Printf("🌐 Switched Go mirror to %s (%s)\n", m.Name, m.URL)
+			return nil
+		}
+
+		// No args: show current
 		cur := cfg.GoMirror
 		if cur == "" {
 			cur = "https://go.dev/dl/ (default)"

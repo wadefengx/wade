@@ -103,8 +103,6 @@ func TestGoMirrorPresets(t *testing.T) {
 	want := []GoMirror{
 		{Name: "official", URL: "https://go.dev/dl/"},
 		{Name: "google-cn", URL: "https://golang.google.cn/dl/"},
-		{Name: "npmmirror", URL: "https://npmmirror.com/mirrors/go/"},
-		{Name: "aliyun", URL: "https://mirrors.aliyun.com/go/"},
 	}
 
 	got := GoMirrorPresets()
@@ -124,7 +122,7 @@ func TestFindGoMirror(t *testing.T) {
 		want *GoMirror
 		ok   bool
 	}{
-		{name: "npmmirror", want: &GoMirror{Name: "npmmirror", URL: "https://npmmirror.com/mirrors/go/"}, ok: true},
+		{name: "google-cn", want: &GoMirror{Name: "google-cn", URL: "https://golang.google.cn/dl/"}, ok: true},
 		{name: "missing", ok: false},
 	}
 

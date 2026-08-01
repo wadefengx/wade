@@ -4,6 +4,20 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.9] — 2026-08-01
+
+### Fixed
+
+- **`wade go install 1.23` → 404**(根因三连):
+  1. **无版本解析**: `1.23` 直接拼 `go1.23.windows-amd64.zip`(需 `go1.23.x`)。新增 `ResolveVersion`(精确版本直通,模糊版本查 API 找最新 patch)
+  2. **go.dev JSON API 只返回最近两个大版本**(1.26/1.25),`1.23` 查不到。改用 `?mode=json&include=all`(357 个版本,实测 `1.23 → go1.23.12`)
+  3. **`wade go mirror aliyun` 从未生效**: cobra 里 `aliyun` 不是子命令(`use` 才是),未知参数回落父命令只显示当前源。`goMirrorCmd` 改为有参数即切换(隐式 use)
+- **移除失效的 Go 镜像预设**: npmmirror/aliyun 的 Go 镜像已死(实测 404,两种路径都试过),presets 只留 official + google-cn(均实测 200)。pip 镜像全部正常(tsinghua/aliyun/huawei/tencent/ustc 均 200),python 无此问题
+- `FetchRemoteVersions` 加 15s 超时
+- 新增测试: 精确/模糊/无匹配 + 真实 google-cn API 集成测试
+
+---
+
 ## [v0.4.8] — 2026-08-01
 
 ### Changed

@@ -120,13 +120,13 @@ type GoMirror struct {
 	URL  string
 }
 
-// GoMirrorPresets returns built-in Go download mirrors
+// GoMirrorPresets returns built-in Go download mirrors.
+// npmmirror/aliyun Go mirrors are dead (404 as of 2026-08) — removed.
+// google-cn verified working (dl/?mode=json + file downloads).
 func GoMirrorPresets() []GoMirror {
 	return []GoMirror{
 		{Name: "official", URL: "https://go.dev/dl/"},
 		{Name: "google-cn", URL: "https://golang.google.cn/dl/"},
-		{Name: "npmmirror", URL: "https://npmmirror.com/mirrors/go/"},
-		{Name: "aliyun", URL: "https://mirrors.aliyun.com/go/"},
 	}
 }
 
