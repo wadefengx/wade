@@ -4,6 +4,14 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.5] — 2026-08-01
+
+### Fixed
+
+- **PowerShell 闪退**: `irm | iex` 管道下,install.ps1 里的 `exit` 会关闭整个 PowerShell 会话(错误不可见)。重构:所有 `exit` → `throw`,主体包 try/catch,失败时 `Read-Host` 暂停让窗口停留显示错误
+
+---
+
 ## [v0.3.4] — 2026-08-01
 
 ### Fixed

@@ -3,95 +3,109 @@
 #   irm https://github.com/wadefengx/wade/releases/latest/download/install.ps1 | iex
 # Requires: PowerShell 5.1+ (built into Windows). No admin needed.
 
+# NOTE: never use `exit` in this script — under `irm | iex` it kills the
+# whole PowerShell session (window closes, error invisible). We throw and
+# let the outer catch pause with Read-Host instead.
+
 $ErrorActionPreference = 'Stop'
 
-$repo = 'wadefengx/wade'
-$installDir = Join-Path $env:LOCALAPPDATA 'wade'
-$shimDir = Join-Path $installDir 'shims'
-
-Write-Host "`n🏄 Wade Installer`n" -ForegroundColor Cyan
-
-# --- Detect architecture ---
-switch ($env:PROCESSOR_ARCHITECTURE) {
-  'AMD64' { $arch = 'amd64' }
-  'ARM64' { $arch = 'arm64' }
-  default { Write-Host "❌ Unsupported architecture: $env:PROCESSOR_ARCHITECTURE" -ForegroundColor Red; exit 1 }
+function Fail([string]$msg) {
+  Write-Host "❌ $msg" -ForegroundColor Red
+  throw $msg
 }
 
-# --- Resolve latest release (HTTP redirect — no API rate limits) ---
-Write-Host "Fetching latest release..." -ForegroundColor Gray
-# https://github.com/$repo/releases/latest → 302 → .../releases/tag/vX.Y.Z
 try {
-  $resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -MaximumRedirection 0 -UseBasicParsing -ErrorAction Stop
-} catch {
-  # PS 5.1 throws on non-2xx; the redirect Location is in the exception response
-  $resp = $_.Exception.Response
-}
-$version = $null
-if ($resp -and $resp.Headers) {
-  $loc = $resp.Headers['Location']
-  if ($loc -match '/tag/([^/]+)') { $version = $Matches[1] }
-}
-if (-not $version) {
-  Write-Host "❌ Could not determine latest version" -ForegroundColor Red
-  exit 1
-}
-$fileName = "wade-windows-$arch.zip"
-$shaName = "wade-windows-$arch.sha256"
-$url = "https://github.com/$repo/releases/latest/download/$fileName"
-Write-Host "Latest version: $version" -ForegroundColor Green
+  $repo = 'wadefengx/wade'
+  $installDir = Join-Path $env:LOCALAPPDATA 'wade'
+  $shimDir = Join-Path $installDir 'shims'
 
-# --- Download + verify checksum ---
-$tmp = Join-Path $env:TEMP "wade-$([guid]::NewGuid())"
-New-Item -ItemType Directory -Path $tmp | Out-Null
-$zipPath = Join-Path $tmp $fileName
+  Write-Host "`n🏄 Wade Installer`n" -ForegroundColor Cyan
 
-Write-Host "Downloading $fileName ..." -ForegroundColor Gray
-Invoke-WebRequest -Uri $url -OutFile $zipPath
-
-# Checksum: fetch the .sha256 asset via latest/download redirect (no API)
-$shaUrl = "https://github.com/$repo/releases/latest/download/$shaName"
-try {
-  $expected = (Invoke-WebRequest -Uri $shaUrl -UseBasicParsing -ErrorAction Stop).Content.Trim() -split '\s+' | Select-Object -First 1
-  $actual = (Get-FileHash -Algorithm SHA256 -Path $zipPath).Hash.ToLower()
-  if ($actual -ne $expected.ToLower()) {
-    Write-Host "❌ Checksum mismatch! Expected $expected, got $actual" -ForegroundColor Red
-    Remove-Item -Recurse -Force $tmp
-    exit 1
+  # --- Detect architecture ---
+  switch ($env:PROCESSOR_ARCHITECTURE) {
+    'AMD64' { $arch = 'amd64' }
+    'ARM64' { $arch = 'arm64' }
+    default { Fail "Unsupported architecture: $env:PROCESSOR_ARCHITECTURE" }
   }
-  Write-Host "✓ Checksum verified" -ForegroundColor Green
+
+  # --- Resolve latest release (HTTP redirect — no API rate limits) ---
+  Write-Host "Fetching latest release..." -ForegroundColor Gray
+  # https://github.com/$repo/releases/latest → 302 → .../releases/tag/vX.Y.Z
+  try {
+    $resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -MaximumRedirection 0 -UseBasicParsing -ErrorAction Stop
+  } catch {
+    # PS 5.1 throws on non-2xx; the redirect Location is in the exception response
+    $resp = $_.Exception.Response
+  }
+  $version = $null
+  if ($resp -and $resp.Headers) {
+    $loc = $resp.Headers['Location']
+    if ($loc -match '/tag/([^/]+)') { $version = $Matches[1] }
+  }
+  if (-not $version) { Fail "Could not determine latest version (network blocked?)" }
+
+  $fileName = "wade-windows-$arch.zip"
+  $shaName = "wade-windows-$arch.sha256"
+  $url = "https://github.com/$repo/releases/latest/download/$fileName"
+  Write-Host "Latest version: $version" -ForegroundColor Green
+
+  # --- Download + verify checksum ---
+  $tmp = Join-Path $env:TEMP "wade-$([guid]::NewGuid())"
+  New-Item -ItemType Directory -Path $tmp | Out-Null
+  $zipPath = Join-Path $tmp $fileName
+
+  Write-Host "Downloading $fileName ..." -ForegroundColor Gray
+  Invoke-WebRequest -Uri $url -OutFile $zipPath
+
+  # Checksum: fetch the .sha256 asset via latest/download redirect (no API)
+  $shaUrl = "https://github.com/$repo/releases/latest/download/$shaName"
+  try {
+    $expected = (Invoke-WebRequest -Uri $shaUrl -UseBasicParsing -ErrorAction Stop).Content.Trim() -split '\s+' | Select-Object -First 1
+    $actual = (Get-FileHash -Algorithm SHA256 -Path $zipPath).Hash.ToLower()
+    if ($actual -ne $expected.ToLower()) {
+      Remove-Item -Recurse -Force $tmp
+      Fail "Checksum mismatch! Expected $expected, got $actual"
+    }
+    Write-Host "✓ Checksum verified" -ForegroundColor Green
+  } catch {
+    Write-Host "⚠ Checksum unavailable ($($_.Exception.Message)) — continuing without verification" -ForegroundColor Yellow
+  }
+
+  # --- Extract ---
+  Write-Host "Extracting..." -ForegroundColor Gray
+  Expand-Archive -Path $zipPath -DestinationPath $tmp -Force
+  $exe = Get-ChildItem -Path $tmp -Filter 'wade.exe' -Recurse | Select-Object -First 1
+  if (-not $exe) { Remove-Item -Recurse -Force $tmp; Fail "wade.exe not found in archive" }
+
+  # --- Install ---
+  New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+  Copy-Item $exe.FullName -Destination (Join-Path $installDir 'wade.exe') -Force
+  Remove-Item -Recurse -Force $tmp
+
+  # --- Add to user PATH (permanent) ---
+  $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+  if ($userPath -notlike "*$installDir*") {
+    $newPath = if ([string]::IsNullOrEmpty($userPath)) { $installDir } else { "$userPath;$installDir" }
+    [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+    Write-Host "✓ Added $installDir to user PATH" -ForegroundColor Green
+  } else {
+    Write-Host "✓ $installDir already in PATH" -ForegroundColor Green
+  }
+
+  # --- Post-install hint ---
+  Write-Host "`n✅ wade $version installed to $installDir\wade.exe" -ForegroundColor Green
+  Write-Host ""
+  Write-Host "⚠️  PATH updated — open a NEW terminal, then run:" -ForegroundColor Yellow
+  Write-Host "   wade -i" -ForegroundColor White
+  Write-Host ""
+
+  # Try to make it work in the current session too
+  $env:Path = "$installDir;$env:Path"
+  try { & (Join-Path $installDir 'wade.exe') version } catch { }
+
 } catch {
-  Write-Host "⚠ Checksum unavailable ($($_.Exception.Message)) — continuing without verification" -ForegroundColor Yellow
+  # Keep the window open so the user can read the error (irm|iex + exit = flash-close)
+  Write-Host ""
+  Write-Host "⚠️  Installer failed. Press Enter to close this window..." -ForegroundColor Yellow
+  Read-Host | Out-Null
 }
-
-# --- Extract ---
-Write-Host "Extracting..." -ForegroundColor Gray
-Expand-Archive -Path $zipPath -DestinationPath $tmp -Force
-$exe = Get-ChildItem -Path $tmp -Filter 'wade.exe' -Recurse | Select-Object -First 1
-if (-not $exe) { Write-Host "❌ wade.exe not found in archive" -ForegroundColor Red; Remove-Item -Recurse -Force $tmp; exit 1 }
-
-# --- Install ---
-New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-Copy-Item $exe.FullName -Destination (Join-Path $installDir 'wade.exe') -Force
-Remove-Item -Recurse -Force $tmp
-
-# --- Add to user PATH (permanent) ---
-$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-if ($userPath -notlike "*$installDir*") {
-  $newPath = if ([string]::IsNullOrEmpty($userPath)) { $installDir } else { "$userPath;$installDir" }
-  [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
-  Write-Host "✓ Added $installDir to user PATH" -ForegroundColor Green
-} else {
-  Write-Host "✓ $installDir already in PATH" -ForegroundColor Green
-}
-
-# --- Post-install hint ---
-Write-Host "`n✅ wade $version installed to $installDir\wade.exe" -ForegroundColor Green
-Write-Host ""
-Write-Host "⚠️  PATH updated — open a NEW terminal, then run:" -ForegroundColor Yellow
-Write-Host "   wade -i" -ForegroundColor White
-Write-Host ""
-
-# Try to make it work in the current session too
-$env:Path = "$installDir;$env:Path"
-try { & (Join-Path $installDir 'wade.exe') version } catch { }
