@@ -82,7 +82,7 @@ func checkForUpdate(force bool) {
 		}
 	}
 
-	client := &http.Client{Timeout: 3 * time.Second}
+	client := newHTTPClient(3 * time.Second)
 	resp, err := client.Get("https://api.github.com/repos/wadefengx/wade/releases/latest")
 	if err != nil {
 		return // network failure — stay silent

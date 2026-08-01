@@ -4,6 +4,15 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.4] — 2026-08-01
+
+### Added
+
+- **Windows 系统代理自动识别**: `wade -u`/启动检查现在自动读取 Windows 系统代理(注册表 WinINET 设置,和 PowerShell 的 irm 一致)——之前 Go 只认 HTTP_PROXY 环境变量,ClashX 系统代理对 wade 无效,导致 PowerShell 里更新快、cmd 里卡。优先级:环境变量 > Windows 系统代理
+- `parseProxyServerLine` 支持纯地址 / http:// 前缀 / 分协议列表(https 优先)+ 单测
+
+---
+
 ## [v0.4.3] — 2026-08-01
 
 ### Fixed

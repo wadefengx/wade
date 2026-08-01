@@ -81,7 +81,7 @@ func runUpdate() error {
 	// Download — dual-channel: API asset endpoint first (api.github.com +
 	// release-assets CDN reachable from CN), github.com direct fallback.
 	fmt.Printf("Downloading %s...\n", url)
-	dlClient := &http.Client{Timeout: 60 * time.Second}
+	dlClient := newHTTPClient(60 * time.Second)
 
 	resp, err := downloadAsset(dlClient, repo, latest, assetBase+archiveExtension)
 	if err != nil {
@@ -171,11 +171,9 @@ func getLatestVersion(repo string) (string, error) {
 	}
 	// Channel 2: HTTP redirect (github.com, no API quota)
 	url := fmt.Sprintf("https://github.com/%s/releases/latest", repo)
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // don't follow; grab Location
-		},
+	client := newHTTPClient(10 * time.Second)
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse // don't follow; grab Location
 	}
 	resp, err := client.Get(url)
 	if err != nil {
@@ -199,7 +197,7 @@ func getLatestVersion(repo string) (string, error) {
 // getLatestVersionAPI resolves the latest tag via the GitHub REST API.
 func getLatestVersionAPI(repo string) (string, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := newHTTPClient(10 * time.Second)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
@@ -236,7 +234,7 @@ func getLatestVersionAPI(repo string) (string, error) {
 // release-assets CDN — reachable from CN networks (unlike github.com).
 // assetName is e.g. "wade-windows-amd64.zip".
 func downloadAsset(client *http.Client, repo, version, assetName string) (*http.Response, error) {
-	apiClient := &http.Client{Timeout: 15 * time.Second}
+	apiClient := newHTTPClient(15 * time.Second)
 	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo), nil)
 	req.Header.Set("User-Agent", "wade-update")
 	relResp, err := apiClient.Do(req)
@@ -384,7 +382,7 @@ func verifyChecksum(archivePath, checksumURL string) error {
 	shaName := filepath.Base(checksumURL)
 
 	var body []byte
-	if resp, err := downloadAsset(&http.Client{Timeout: 30 * time.Second}, "wadefengx/wade", "", shaName); err == nil {
+	if resp, err := downloadAsset(newHTTPClient(30*time.Second), "wadefengx/wade", "", shaName); err == nil {
 		b, rerr := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if rerr == nil && resp.StatusCode == http.StatusOK {
