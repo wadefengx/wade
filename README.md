@@ -94,7 +94,12 @@ After `wade -i` this is done automatically. If you need to do it manually:
 ```bash
 wade -i          # Interactive setup — choose Node, Go, Python, or all
 wade init -y     # Non-interactive: auto-config all three (China-friendly)
+wade update      # Self-update wade to the latest version
+wade -u          # Same as above (shortcut flag)
 ```
+
+> 💡 wade checks for updates before every command (cached 24h). When a new
+> version exists it prints `✨ New version available` and asks to update now.
 
 ### Per-runtime
 

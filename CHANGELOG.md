@@ -4,6 +4,15 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.3] — 2026-08-01
+
+### Added
+
+- **`wade -u` shortcut**: 与 `wade update` 等效,一条命令自更新
+- **启动版本检查**(oh-my-zsh 风格): 每次运行命令前检查 GitHub 最新版(24h 缓存,3s 超时,静默失败),发现新版本打印 `✨ New version available` 并交互询问 `Update now? [y/N]`;非交互环境只提示不阻塞
+
+---
+
 ## [v0.3.2] — 2026-08-01
 
 ### Fixed

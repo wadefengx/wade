@@ -36,6 +36,8 @@ check "release-shas.sh syntax"       "bash -n scripts/release-shas.sh"
 check "install.ps1 present"          "test -f scripts/install.ps1 && grep -q 'wade.exe' scripts/install.ps1"
 check "scoop manifest JSON valid"    "python3 -m json.tool scripts/wade.json >/dev/null"
 check "docs HTML well-formed"        "python3 -c \"from html.parser import HTMLParser; HTMLParser().feed(open('docs/index.html').read())\""
+check "self-update wired (-u flag)"  "grep -q runUpdate cmd/update.go"
+check "update check cached 24h"      "grep -q 'time.Hour' cmd/root.go"
 
 echo "════════════════════════════════════════════"
 echo "RESULT: $PASS passed, $FAIL failed"

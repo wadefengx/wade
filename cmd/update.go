@@ -41,110 +41,115 @@ var updateCmd = &cobra.Command{
 Uses GitHub Releases to find the latest version and downloads the
 appropriate binary for the current platform.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		const repo = "wadefengx/wade"
-
-		// Check latest version from GitHub API
-		latest, err := getLatestVersion(repo)
-		if err != nil {
-			return fmt.Errorf("check latest version: %w", err)
-		}
-
-		if latest == version {
-			fmt.Printf("Already up-to-date (wade %s)\n", version)
-			return nil
-		}
-
-		fmt.Printf("Updating wade %s → %s\n", version, latest)
-
-		// Build download URL
-		platform := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
-		assetBase := fmt.Sprintf("wade-%s", platform)
-		archiveExtension := ".tar.gz"
-		if runtime.GOOS == "windows" {
-			archiveExtension = ".zip"
-		}
-
-		releaseURL := fmt.Sprintf(
-			"https://github.com/%s/releases/download/%s/",
-			repo, latest,
-		)
-		url := releaseURL + assetBase + archiveExtension
-		checksumURL := releaseURL + assetBase + ".sha256"
-
-		// Download
-		fmt.Printf("Downloading %s...\n", url)
-		resp, err := http.Get(url)
-		if err != nil {
-			return fmt.Errorf("download: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
-		}
-
-		// Write to temp file
-		tmpFile, err := os.CreateTemp("", "wade-update-*"+archiveExtension)
-		if err != nil {
-			return err
-		}
-		defer os.Remove(tmpFile.Name())
-
-		if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-			return err
-		}
-		if err := tmpFile.Chmod(0755); err != nil {
-			return fmt.Errorf("set download permissions: %w", err)
-		}
-		if err := tmpFile.Close(); err != nil {
-			return fmt.Errorf("close download: %w", err)
-		}
-
-		if err := verifyChecksum(tmpFile.Name(), checksumURL); err != nil {
-			return fmt.Errorf("verify downloaded update: %w", err)
-		}
-
-		// Find current binary location
-		currentBin, err := os.Executable()
-		if err != nil {
-			return fmt.Errorf("find current binary: %w", err)
-		}
-		currentBin, err = filepath.EvalSymlinks(currentBin)
-		if err != nil {
-			return fmt.Errorf("resolve binary path: %w", err)
-		}
-
-		extractedBin, err := os.CreateTemp(filepath.Dir(currentBin), ".wade-update-*")
-		if err != nil {
-			return fmt.Errorf("create extracted binary: %w", err)
-		}
-		extractedPath := extractedBin.Name()
-		if err := extractedBin.Close(); err != nil {
-			os.Remove(extractedPath)
-			return fmt.Errorf("close extracted binary: %w", err)
-		}
-		defer os.Remove(extractedPath)
-
-		if err := extractBinary(tmpFile.Name(), extractedPath); err != nil {
-			return fmt.Errorf("extract downloaded update: %w", err)
-		}
-
-		// Replace
-		backup := currentBin + ".old"
-		if err := os.Rename(currentBin, backup); err != nil {
-			return fmt.Errorf("backup current binary: %w", err)
-		}
-
-		if err := os.Rename(extractedPath, currentBin); err != nil {
-			// Restore backup
-			os.Rename(backup, currentBin)
-			return fmt.Errorf("install new binary: %w", err)
-		}
-
-		os.Remove(backup)
-		fmt.Printf("Updated to %s\n", latest)
-		return nil
+		return runUpdate()
 	},
+}
+
+// runUpdate performs the self-update: check latest, download, verify, replace.
+func runUpdate() error {
+	const repo = "wadefengx/wade"
+
+	// Check latest version from GitHub API
+	latest, err := getLatestVersion(repo)
+	if err != nil {
+		return fmt.Errorf("check latest version: %w", err)
+	}
+
+	if latest == version {
+		fmt.Printf("Already up-to-date (wade %s)\n", version)
+		return nil
+	}
+
+	fmt.Printf("Updating wade %s → %s\n", version, latest)
+
+	// Build download URL
+	platform := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
+	assetBase := fmt.Sprintf("wade-%s", platform)
+	archiveExtension := ".tar.gz"
+	if runtime.GOOS == "windows" {
+		archiveExtension = ".zip"
+	}
+
+	releaseURL := fmt.Sprintf(
+		"https://github.com/%s/releases/download/%s/",
+		repo, latest,
+	)
+	url := releaseURL + assetBase + archiveExtension
+	checksumURL := releaseURL + assetBase + ".sha256"
+
+	// Download
+	fmt.Printf("Downloading %s...\n", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("download: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
+	}
+
+	// Write to temp file
+	tmpFile, err := os.CreateTemp("", "wade-update-*"+archiveExtension)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+		return err
+	}
+	if err := tmpFile.Chmod(0755); err != nil {
+		return fmt.Errorf("set download permissions: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("close download: %w", err)
+	}
+
+	if err := verifyChecksum(tmpFile.Name(), checksumURL); err != nil {
+		return fmt.Errorf("verify downloaded update: %w", err)
+	}
+
+	// Find current binary location
+	currentBin, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("find current binary: %w", err)
+	}
+	currentBin, err = filepath.EvalSymlinks(currentBin)
+	if err != nil {
+		return fmt.Errorf("resolve binary path: %w", err)
+	}
+
+	extractedBin, err := os.CreateTemp(filepath.Dir(currentBin), ".wade-update-*")
+	if err != nil {
+		return fmt.Errorf("create extracted binary: %w", err)
+	}
+	extractedPath := extractedBin.Name()
+	if err := extractedBin.Close(); err != nil {
+		os.Remove(extractedPath)
+		return fmt.Errorf("close extracted binary: %w", err)
+	}
+	defer os.Remove(extractedPath)
+
+	if err := extractBinary(tmpFile.Name(), extractedPath); err != nil {
+		return fmt.Errorf("extract downloaded update: %w", err)
+	}
+
+	// Replace
+	backup := currentBin + ".old"
+	if err := os.Rename(currentBin, backup); err != nil {
+		return fmt.Errorf("backup current binary: %w", err)
+	}
+
+	if err := os.Rename(extractedPath, currentBin); err != nil {
+		// Restore backup
+		os.Rename(backup, currentBin)
+		return fmt.Errorf("install new binary: %w", err)
+	}
+
+	os.Remove(backup)
+	fmt.Printf("Updated to %s\n", latest)
+	return nil
 }
 
 func getLatestVersion(repo string) (string, error) {
