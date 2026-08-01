@@ -4,6 +4,20 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.6] — 2026-08-01
+
+### Fixed
+
+- **CN 网络下 install.ps1 拿不到版本号**: CN 网络特征 = `api.github.com` 可达、`github.com:443` 被墙。v0.3.4 改成 github.com 重定向后 CN 用户直接失败。恢复**双通道**: API 优先(CN 可达),重定向兜底(海外)
+- **下载也双通道 + 自动重试**: API 资产端点 `releases/assets/{id}`(→ CDN,CN 可达)重试 2 次 → github.com 直连第 3 次 → 全部失败给出明确原因 + 代理指引
+- **checksum** 同样 API 资产优先
+
+### Added
+
+- **自动重试机制**: 下载最多 3 次(API×2 + github.com×1),失败在 cmd 里明确显示原因和代理方案
+
+---
+
 ## [v0.3.5] — 2026-08-01
 
 ### Fixed

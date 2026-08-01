@@ -28,25 +28,43 @@ try {
     default { Fail "Unsupported architecture: $env:PROCESSOR_ARCHITECTURE" }
   }
 
-  # --- Resolve latest release (HTTP redirect — no API rate limits) ---
+  # --- Resolve latest release (dual-channel: API for CN, redirect fallback) ---
   Write-Host "Fetching latest release..." -ForegroundColor Gray
-  # https://github.com/$repo/releases/latest → 302 → .../releases/tag/vX.Y.Z
-  try {
-    $resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -MaximumRedirection 0 -UseBasicParsing -ErrorAction Stop
-  } catch {
-    # PS 5.1 throws on non-2xx; the redirect Location is in the exception response
-    $resp = $_.Exception.Response
-  }
   $version = $null
-  if ($resp -and $resp.Headers) {
-    $loc = $resp.Headers['Location']
-    if ($loc -match '/tag/([^/]+)') { $version = $Matches[1] }
+
+  # Channel 1: GitHub API (reachable from CN networks; rate-limited but usually works)
+  try {
+    $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -Headers @{ 'User-Agent' = 'wade-installer' } -TimeoutSec 10 -ErrorAction Stop
+    if ($rel.tag_name) { $version = $rel.tag_name }
+  } catch {
+    Write-Host "  (api channel failed: $($_.Exception.Message))" -ForegroundColor DarkGray
   }
-  if (-not $version) { Fail "Could not determine latest version (network blocked?)" }
+
+  # Channel 2: HTTP redirect https://github.com/$repo/releases/latest → /releases/tag/vX.Y.Z
+  if (-not $version) {
+    try {
+      $resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -MaximumRedirection 0 -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    } catch {
+      $resp = $_.Exception.Response
+    }
+    if ($resp -and $resp.Headers) {
+      $loc = $resp.Headers['Location']
+      if ($loc -match '/tag/([^/]+)') { $version = $Matches[1] }
+    }
+  }
+
+  if (-not $version) {
+    Fail "Could not determine latest version. Check network/proxy, or download manually from https://github.com/$repo/releases/latest"
+  }
 
   $fileName = "wade-windows-$arch.zip"
   $shaName = "wade-windows-$arch.sha256"
-  $url = "https://github.com/$repo/releases/latest/download/$fileName"
+  # Prefer API asset endpoint (api.github.com + release-assets CDN reachable from CN),
+  # fall back to github.com direct when the API channel failed.
+  $apiAsset = $null
+  if ($rel -and $rel.assets) { $apiAsset = $rel.assets | Where-Object { $_.name -eq $fileName } | Select-Object -First 1 }
+  $apiSha = $null
+  if ($rel -and $rel.assets) { $apiSha = $rel.assets | Where-Object { $_.name -eq $shaName } | Select-Object -First 1 }
   Write-Host "Latest version: $version" -ForegroundColor Green
 
   # --- Download + verify checksum ---
@@ -55,12 +73,45 @@ try {
   $zipPath = Join-Path $tmp $fileName
 
   Write-Host "Downloading $fileName ..." -ForegroundColor Gray
-  Invoke-WebRequest -Uri $url -OutFile $zipPath
+  $downloaded = $false
+  $lastErr = $null
 
-  # Checksum: fetch the .sha256 asset via latest/download redirect (no API)
-  $shaUrl = "https://github.com/$repo/releases/latest/download/$shaName"
+  # Attempt 1-2: API asset endpoint (api.github.com + release-assets CDN reachable from CN)
+  if ($apiAsset) {
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+      try {
+        Invoke-WebRequest -Uri $apiAsset.url -Headers @{ 'Accept' = 'application/octet-stream'; 'User-Agent' = 'wade-installer' } -OutFile $zipPath -TimeoutSec 60 -UseBasicParsing -ErrorAction Stop
+        $downloaded = $true
+        break
+      } catch {
+        $lastErr = $_.Exception.Message
+        Write-Host "  (api attempt $attempt/2 failed: $lastErr)" -ForegroundColor DarkGray
+        Start-Sleep -Seconds 2
+      }
+    }
+  }
+
+  # Attempt 3: github.com direct (works outside CN / when API is down)
+  if (-not $downloaded) {
+    try {
+      Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$version/$fileName" -OutFile $zipPath -TimeoutSec 60 -UseBasicParsing -ErrorAction Stop
+      $downloaded = $true
+    } catch {
+      $lastErr = $_.Exception.Message
+    }
+  }
+
+  if (-not $downloaded) {
+    Fail "Download failed after 3 attempts (last: $lastErr).`n       If behind a proxy, run:`n       `$env:HTTP_PROXY='http://127.0.0.1:7890'; `$env:HTTPS_PROXY='http://127.0.0.1:7890';`n       then re-run the installer."
+  }
+
+  # Checksum: API asset first, github.com fallback
   try {
-    $expected = (Invoke-WebRequest -Uri $shaUrl -UseBasicParsing -ErrorAction Stop).Content.Trim() -split '\s+' | Select-Object -First 1
+    if ($apiSha) {
+      $expected = (Invoke-WebRequest -Uri $apiSha.url -Headers @{ 'Accept' = 'application/octet-stream'; 'User-Agent' = 'wade-installer' } -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content.Trim() -split '\s+' | Select-Object -First 1
+    } else {
+      $expected = (Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$version/$shaName" -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content.Trim() -split '\s+' | Select-Object -First 1
+    }
     $actual = (Get-FileHash -Algorithm SHA256 -Path $zipPath).Hash.ToLower()
     if ($actual -ne $expected.ToLower()) {
       Remove-Item -Recurse -Force $tmp
