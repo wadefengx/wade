@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -90,7 +92,20 @@ var statusCmd = &cobra.Command{
 		// Shim health: is ~/.wade/shims actually on PATH?
 		if nodeVer != "" {
 			shimDir, _ := node.ShimDir()
-			if !pathInEnvPath(shimDir) {
+			switch {
+			case pathInEnvPath(shimDir):
+				// shims on current session PATH — check actual node resolution
+				if p := whichNode(); p != "" && !strings.Contains(strings.ToLower(p), "shims") {
+					fmt.Println()
+					fmt.Printf("  ⚠️  'node' resolves to %s (system), not wade's shim!\n", p)
+					fmt.Println("      Ensure ~/.wade/shims is FIRST in your PATH (it must come before Program Files\\nodejs).")
+					fmt.Println("      Fix: wade setup --auto, then open a NEW terminal.")
+				}
+			case userPathHasShims(shimDir):
+				fmt.Println()
+				fmt.Println("  ⚠️  shims are in your user PATH, but this window has the OLD PATH.")
+				fmt.Println("      Close this window and open a NEW cmd/PowerShell — then 'node' will be wade's.")
+			default:
 				fmt.Println()
 				fmt.Println("  ⚠️  ~/.wade/shims is NOT on your PATH — 'node' is the system version, not wade's!")
 				fmt.Println("      Fix: wade setup --auto, then open a NEW terminal.")
@@ -109,6 +124,29 @@ func displayVersion() string {
 		return "dev (built from source)"
 	}
 	return version
+}
+
+// userPathHasShims reports whether shimDir is in the persisted USER PATH
+// (registry HKCU\Environment). Windows only — on unix returns false so the
+// current-session PATH check governs.
+func userPathHasShims(shimDir string) bool {
+	if runtime.GOOS != "windows" {
+		return false
+	}
+	out, err := exec.Command("reg", "query", `HKCU\Environment`, "/v", "Path").CombinedOutput()
+	if err != nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(string(out)), strings.ToLower(shimDir))
+}
+
+// whichNode returns the path 'node' resolves to, or "" if not found.
+func whichNode() string {
+	p, err := exec.LookPath("node")
+	if err != nil {
+		return ""
+	}
+	return p
 }
 
 func init() {

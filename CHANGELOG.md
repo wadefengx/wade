@@ -4,6 +4,17 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.1] — 2026-08-01
+
+### Fixed
+
+- **Windows shims 加到 PATH 末尾导致 node 仍解析到系统版**: Windows 的 PATH 顺序 = 系统 PATH(含 Program Files\nodejs)在前 + 用户 PATH 在后。旧 setup 把 shims 追加到用户 PATH 末尾 → node 永远先命中系统版
+  - `wade setup` 现在把 shims 加到用户 PATH **最前面**,已存在但顺序不对时自动 reorder
+  - `wade status` / `wade node use` 分三层诊断: ① 当前会话有 shims → 检查 node 实际解析路径(是否被系统版遮蔽) ② 用户 PATH 有但当前窗口旧 → 提示重开窗口 ③ 完全没有 → 提示 setup
+  - `userPathHasShims`(读注册表)+ `whichNode`(exec.LookPath)helper
+
+---
+
 ## [v0.4.0] — 2026-08-01
 
 ### Added

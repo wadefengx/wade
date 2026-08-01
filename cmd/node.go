@@ -94,14 +94,20 @@ var nodeUseCmd = &cobra.Command{
 
 		fmt.Printf("🟢 Now using %s\n", matched)
 
-		// Windows: warn if shims dir isn't on PATH (node -v would still hit system node)
+		// Windows: warn if shims dir isn't on the CURRENT session PATH
+		// (node -v would still hit system node until a new window opens)
 		if runtime.GOOS == "windows" {
 			shimDir, _ := node.ShimDir()
 			if !pathInEnvPath(shimDir) {
 				fmt.Println()
-				fmt.Println("⚠️  ~/.wade/shims is NOT on your PATH — 'node' will still be the system version!")
-				fmt.Println("   Run: wade setup   (adds shims to user PATH, works for cmd + PowerShell)")
-				fmt.Println("   Then open a NEW terminal window.")
+				if userPathHasShims(shimDir) {
+					fmt.Println("⚠️  shims are in your user PATH, but THIS window has the old PATH.")
+					fmt.Println("   Close it and open a NEW cmd/PowerShell — then 'node' will be wade's.")
+				} else {
+					fmt.Println("⚠️  ~/.wade/shims is NOT on your PATH — 'node' will still be the system version!")
+					fmt.Println("   Run: wade setup   (adds shims to the FRONT of user PATH)")
+					fmt.Println("   Then open a NEW terminal window.")
+				}
 			}
 		}
 		return nil

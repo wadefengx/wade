@@ -60,23 +60,28 @@ Run 'wade setup --auto' to skip prompts.`,
 		// Step 3: Detect shell
 		shell := detectShell()
 
-		// Windows: add shims to the USER PATH env var (registry-backed) —
-		// works for cmd AND PowerShell, unlike shell profile files.
+		// Windows: add shims to the FRONT of the USER PATH env var (registry-backed).
+		// Front placement matters: system PATH (with Program Files\nodejs) is
+		// evaluated BEFORE user PATH, so shims must lead the user PATH.
 		if runtime.GOOS == "windows" {
 			shimAbs, _ := filepath.Abs(shimDir)
+			esc := strings.ReplaceAll(shimAbs, `\`, `\\`)
 			psCmd := fmt.Sprintf(
-				`$p=[Environment]::GetEnvironmentVariable('Path','User'); if($p -notlike '*%s*'){ [Environment]::SetEnvironmentVariable('Path', $p+';%s','User'); Write-Output 'added' } else { Write-Output 'exists' }`,
-				strings.ReplaceAll(shimAbs, `\`, `\\`),
-				strings.ReplaceAll(shimAbs, `\`, `\\`),
+				`$p=[Environment]::GetEnvironmentVariable('Path','User'); if(-not $p){[Environment]::SetEnvironmentVariable('Path','%s','User'); Write-Output 'added'} elseif($p -notlike '*%s*'){[Environment]::SetEnvironmentVariable('Path','%s;'+$p,'User'); Write-Output 'added'} elseif($p -like '%s;*' -or $p -eq '%s'){Write-Output 'exists'} else {$e=[regex]::Escape('%s'); $p=($p -split ';' | Where-Object {$_ -ne $e}) -join ';'; [Environment]::SetEnvironmentVariable('Path','%s;'+$p,'User'); Write-Output 'reordered'}`,
+				esc, esc, esc, esc, esc, esc, esc,
 			)
 			out, err := exec.Command("powershell", "-NoProfile", "-Command", psCmd).CombinedOutput()
-			if err == nil && strings.Contains(string(out), "added") {
-				fmt.Printf("✅ Added %s to user PATH (cmd + PowerShell)\n", shimAbs)
-			} else if err == nil && strings.Contains(string(out), "exists") {
-				fmt.Printf("✅ %s already in user PATH\n", shimAbs)
-			} else {
+			outStr := string(out)
+			switch {
+			case err == nil && strings.Contains(outStr, "added"):
+				fmt.Printf("✅ Added %s to the FRONT of user PATH (cmd + PowerShell)\n", shimAbs)
+			case err == nil && strings.Contains(outStr, "exists"):
+				fmt.Printf("✅ %s is already first in user PATH\n", shimAbs)
+			case err == nil && strings.Contains(outStr, "reordered"):
+				fmt.Printf("✅ Moved %s to the FRONT of user PATH\n", shimAbs)
+			default:
 				fmt.Println("⚠️  Could not update user PATH automatically.")
-				fmt.Printf("   Add %s to your PATH manually (System Settings → Environment Variables).\n", shimAbs)
+				fmt.Printf("   Add %s to the FRONT of your PATH (System Settings → Environment Variables).\n", shimAbs)
 			}
 			fmt.Println()
 			fmt.Println("⚠️  PATH updated — open a NEW cmd/PowerShell window, then run:")
