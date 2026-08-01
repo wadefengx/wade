@@ -23,10 +23,10 @@ Wade is a cross-platform CLI tool that manages **Node.js**, **Go**, and **Python
 
 ### 1.3 Target Platforms
 
-| Platform | Architectures | Package Manager |
-|----------|--------------|-----------------|
+| Platform | Architectures | Installer |
+|----------|--------------|----------|
 | macOS | amd64, arm64 | Homebrew |
-| Windows | amd64 | Scoop, winget |
+| Windows | amd64 | One-line PowerShell (install.ps1) |
 | Linux | amd64, arm64 | Direct download |
 
 ---
@@ -35,15 +35,14 @@ Wade is a cross-platform CLI tool that manages **Node.js**, **Go**, and **Python
 
 ### 2.1 Installation Methods
 
-```bash
+```powershell
 # macOS
 brew install wadefengx/tap/wade
 
-# Windows
-scoop bucket add wade https://github.com/wadefengx/scoop-wade
-scoop install wade
+# Windows — one-line installer (PowerShell 5.1+, no Scoop needed)
+irm https://github.com/wadefengx/wade/releases/latest/download/install.ps1 | iex
 
-# Any platform (auto-detect)
+# Linux / macOS — curl installer
 curl -fsSL https://github.com/wadefengx/wade/releases/latest/download/install.sh | bash
 ```
 

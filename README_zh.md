@@ -36,7 +36,7 @@ brew install wadefengx/tap/wade
 wade -i
 ```
 
-### Windows — 一行命令安装（无需 Scoop）
+### Windows — 一行命令安装
 
 ```powershell
 # PowerShell（Windows 自带 5.1+，cmd 里也能用）
@@ -44,16 +44,6 @@ irm https://github.com/wadefengx/wade/releases/latest/download/install.ps1 | iex
 ```
 
 安装到 `%LOCALAPPDATA%\wade`，自动加入用户 PATH，校验 SHA256。装完**重开一个终端**，然后 `wade -i`。
-
-### Windows — Scoop（如果你已在用 Scoop）
-
-```powershell
-scoop bucket add wade https://github.com/wadefengx/scoop-wade
-scoop install wade
-wade -i
-```
-
-> ⚠️ 还没装 Scoop？先装：`Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; irm get.scoop.sh | iex`——或者直接用上面的一行命令安装。
 
 ### 一行安装（macOS / Linux）
 

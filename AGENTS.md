@@ -29,7 +29,7 @@
 
 ### Wade's solution
 
-1. **Single binary** — installed once via Homebrew/Scoop, never depends on Node
+1. **Single binary** — installed once via Homebrew (macOS) / one-line PowerShell installer (Windows) / curl (Linux), never depends on Node
 2. **Node version management** — install/switch/list/default via shim mechanism
 3. **Registry management** — switch npm/yarn/pnpm registry with one command
 4. **Cross-platform** — macOS, Windows, Linux from day one
@@ -251,7 +251,7 @@ wade version                # Print wade version
 
 ## 10. Pitfalls to Avoid (from nvm/cgr experience)
 
-1. **NEVER** install wade via `npm install -g` — only via brew/scoop/binary
+1. **NEVER** install wade via `npm install -g` — only via brew / one-line PowerShell installer (Windows) / curl / binary
 2. **NEVER** put wade binary inside any Node-managed directory
 3. **NEVER** depend on Node being installed for wade to function
 4. **ALWAYS** put `~/.wade/shims` at front of PATH

@@ -4,6 +4,14 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.8] — 2026-08-01
+
+### Changed
+
+- **Windows 安装收敛为单一途径**: 移除 Scoop 安装入口,Windows 只保留一行 PowerShell 安装(`irm ... | iex`)。README/README_zh/官网安装卡片/spec 全部同步(删 Scoop 卡片与 i18n key)。scoop-wade bucket 与 release 自动更新保留,不再作为推荐途径
+
+---
+
 ## [v0.4.7] — 2026-08-01
 
 ### Fixed
