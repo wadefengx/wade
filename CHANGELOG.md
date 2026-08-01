@@ -4,6 +4,15 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.5] — 2026-08-01
+
+### Fixed
+
+- **交互式 `wade -i` 在 Windows 上仍写 shell rc 文件**(bash 语法 `export PATH=...` 写入 PowerShell profile——PowerShell 不认,cmd 不读,完全无效)。现在 Windows 上 `wade -i` 的 PATH 步骤改调 `runSetup()`(shims 加到用户 PATH 最前,cmd + PowerShell 都生效)
+- **`wade status` 诊断增强**: ① shims 在 PATH 但 node 解析到系统/nvm → 明确提示 nvm 遮蔽 ② 用户 PATH 有 shims 但当前窗口旧 → 提示关闭所有窗口重开 + `setx` 方案 ③ 完全没有 → 提示 setup
+
+---
+
 ## [v0.4.4] — 2026-08-01
 
 ### Added

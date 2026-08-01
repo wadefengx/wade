@@ -97,14 +97,16 @@ var statusCmd = &cobra.Command{
 				// shims on current session PATH — check actual node resolution
 				if p := whichNode(); p != "" && !strings.Contains(strings.ToLower(p), "shims") {
 					fmt.Println()
-					fmt.Printf("  ⚠️  'node' resolves to %s (system), not wade's shim!\n", p)
-					fmt.Println("      Ensure ~/.wade/shims is FIRST in your PATH (it must come before Program Files\\nodejs).")
+					fmt.Printf("  ⚠️  'node' resolves to %s (system/nvm), not wade's shim!\n", p)
+					fmt.Println("      nvm or a system Node install is shadowing wade. Ensure ~/.wade/shims")
+					fmt.Println("      is FIRST in PATH and no nvm symlink precedes it.")
 					fmt.Println("      Fix: wade setup --auto, then open a NEW terminal.")
 				}
 			case userPathHasShims(shimDir):
 				fmt.Println()
-				fmt.Println("  ⚠️  shims are in your user PATH, but this window has the OLD PATH.")
-				fmt.Println("      Close this window and open a NEW cmd/PowerShell — then 'node' will be wade's.")
+				fmt.Println("  ⚠️  shims ARE in your user PATH, but THIS window has the OLD PATH.")
+				fmt.Println("      → Close ALL cmd/PowerShell windows and open a NEW one.")
+				fmt.Println("      → If it still shows this, run:  start /b cmd /c \"setx PATH %PATH%\"  or log off/on.")
 			default:
 				fmt.Println()
 				fmt.Println("  ⚠️  ~/.wade/shims is NOT on your PATH — 'node' is the system version, not wade's!")

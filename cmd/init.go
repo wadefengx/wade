@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	survey "github.com/AlecAivazis/survey/v2"
@@ -219,7 +220,26 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 
 	// ── PATH ──
 	shimDir, _ := node.ShimDir()
-	if !strings.Contains(os.Getenv("PATH"), shimDir) {
+	if runtime.GOOS == "windows" {
+		// Windows: shims go to the FRONT of the user PATH env var (registry).
+		// Shell rc files are useless here — cmd doesn't read PowerShell profile,
+		// and bash-style 'export PATH' lines don't work in PowerShell either.
+		if !strings.Contains(os.Getenv("PATH"), shimDir) {
+			addPath := true
+			if !autoYes {
+				prompt := &survey.Confirm{
+					Message: "Add ~/.wade/shims to the FRONT of your user PATH (works in cmd + PowerShell)?",
+					Default: true,
+				}
+				survey.AskOne(prompt, &addPath)
+			}
+			if addPath {
+				if err := runSetup(); err != nil {
+					return fmt.Errorf("PATH setup: %w", err)
+				}
+			}
+		}
+	} else if !strings.Contains(os.Getenv("PATH"), shimDir) {
 		shell := detectShell()
 		rcFile := shellConfigPath(shell)
 		if rcFile != "" {
