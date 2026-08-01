@@ -4,6 +4,14 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.7] — 2026-08-01
+
+### Fixed
+
+- **install.ps1 checksum 校验被跳过**: PS 5.1 的 `Invoke-WebRequest` 对 `application/octet-stream` 返回 `byte[]`,`.Trim()` 调用失败 → 校验静默跳过。新增 `Get-ContentString` helper,byte[] 先 UTF8 解码再解析
+
+---
+
 ## [v0.3.6] — 2026-08-01
 
 ### Fixed

@@ -106,12 +106,20 @@ try {
   }
 
   # Checksum: API asset first, github.com fallback
+  # PS 5.1 returns byte[] for application/octet-stream — normalize to string.
+  function Get-ContentString($resp) {
+    if ($resp.Content -is [byte[]]) {
+      return [System.Text.Encoding]::UTF8.GetString($resp.Content)
+    }
+    return [string]$resp.Content
+  }
   try {
     if ($apiSha) {
-      $expected = (Invoke-WebRequest -Uri $apiSha.url -Headers @{ 'Accept' = 'application/octet-stream'; 'User-Agent' = 'wade-installer' } -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content.Trim() -split '\s+' | Select-Object -First 1
+      $resp = Invoke-WebRequest -Uri $apiSha.url -Headers @{ 'Accept' = 'application/octet-stream'; 'User-Agent' = 'wade-installer' } -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
     } else {
-      $expected = (Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$version/$shaName" -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content.Trim() -split '\s+' | Select-Object -First 1
+      $resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$version/$shaName" -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
     }
+    $expected = (Get-ContentString $resp).Trim() -split '\s+' | Select-Object -First 1
     $actual = (Get-FileHash -Algorithm SHA256 -Path $zipPath).Hash.ToLower()
     if ($actual -ne $expected.ToLower()) {
       Remove-Item -Recurse -Force $tmp
