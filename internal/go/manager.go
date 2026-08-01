@@ -56,7 +56,7 @@ func ResolveVersion(input, mirror string) (string, error) {
 			return v, nil
 		}
 	}
-	return "", fmt.Errorf("no Go version matches %q", input)
+	return "", fmt.Errorf("no Go version matches %q — try 'wade go ls-remote'", strings.TrimPrefix(input, "go"))
 }
 
 // FetchRemoteVersions fetches Go versions from the remote mirror.
@@ -328,8 +328,8 @@ func UseVersion(version string) error {
 	os.MkdirAll(shimDir, 0755)
 
 	versionBin := filepath.Join(dir, "go", "versions", version, "bin")
+	versionRoot := filepath.Join(dir, "go", "versions", version)
 
-	// Windows: go.exe / gofmt.exe; Unix: go / gofmt
 	names := []string{"go", "gofmt"}
 	if runtime.GOOS == "windows" {
 		names = []string{"go.exe", "gofmt.exe"}
@@ -339,9 +339,32 @@ func UseVersion(version string) error {
 		if _, err := os.Stat(target); err != nil {
 			continue
 		}
-		// shim KEEPS the extension on Windows (go.exe) — cmd/PowerShell's
-		// PATHEXT only matches .exe/.cmd/.bat; an extensionless file is
-		// never found. (node shims are node.exe for the same reason.)
+
+		if runtime.GOOS == "windows" {
+			// Go 1.21+ binaries are trimmed: they infer GOROOT from their OWN
+			// executable path. A hardlink shim (shims/go.exe) makes
+			// os.Executable() return the shim path → GOROOT resolution fails
+			// ("go binary is trimmed and GOROOT is not set").
+			// Fix: a .cmd wrapper that calls the REAL binary path and sets
+			// GOROOT explicitly. PATHEXT finds go.cmd when typing `go`.
+			shimName := strings.TrimSuffix(name, filepath.Ext(name)) + ".cmd"
+			shim := filepath.Join(shimDir, shimName)
+			// remove stale hardlink shims (go.exe) so .cmd wins PATHEXT
+			for _, stale := range []string{filepath.Join(shimDir, name), filepath.Join(shimDir, strings.TrimSuffix(name, filepath.Ext(name)))} {
+				os.Remove(stale)
+			}
+			content := fmt.Sprintf(
+				"@echo off\r\nset GOROOT=%s\r\n\"%s\" %%*\r\n",
+				versionRoot, target,
+			)
+			if err := os.WriteFile(shim, []byte(content), 0755); err != nil {
+				return fmt.Errorf("create shim for %s: %w", name, err)
+			}
+			continue
+		}
+
+		// Unix: symlink directly to bin/go — symlinks are resolved by
+		// os.Executable(), so GOROOT inference works.
 		shim := filepath.Join(shimDir, name)
 		if err := os.Remove(shim); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("remove existing shim for %s: %w", name, err)

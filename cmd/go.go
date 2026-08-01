@@ -51,10 +51,26 @@ var goUseCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ver := args[0]
-		if !strings.HasPrefix(ver, "go") {
-			ver = "go" + ver
+
+		// Resolve partial version against installed versions
+		// (use 1.23 → go1.23.12, same UX as `wade node use 20`).
+		installed, _ := golang.InstalledVersions()
+		normalized := strings.TrimPrefix(ver, "go")
+		for _, v := range installed {
+			if strings.TrimPrefix(v, "go") == normalized {
+				return golang.UseVersion(v)
+			}
 		}
-		return golang.UseVersion(ver)
+		// Prefix match: use 1.23 → first installed go1.23.x
+		prefix := "go" + normalized
+		for _, v := range installed {
+			if strings.HasPrefix(v, prefix) {
+				return golang.UseVersion(v)
+			}
+		}
+
+		return fmt.Errorf("version %s not installed — run 'wade go install %s'",
+			ver, strings.TrimPrefix(ver, "go"))
 	},
 }
 

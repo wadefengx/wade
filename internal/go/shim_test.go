@@ -4,15 +4,17 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/wadefengx/wade/internal/config"
 )
 
-// TestUseVersionWindowsShims: on Windows the shim files keep the .exe
-// extension (shims/go.exe → versions/.../bin/go.exe) — cmd/PowerShell's
-// PATHEXT only matches .exe/.cmd/.bat, so extensionless shims are never
-// found. (node shims are node.exe for the same reason.)
+// TestUseVersionWindowsShims: on Windows the shim is a go.cmd WRAPPER
+// (not a hardlink!). Go 1.21+ binaries are trimmed and infer GOROOT from
+// their own executable path — a hardlink shim breaks that ("go binary is
+// trimmed and GOROOT is not set"). The .cmd wrapper calls the real binary
+// path and sets GOROOT explicitly.
 func TestUseVersionWindowsShims(t *testing.T) {
 	// Redirect HOME so WadeDir() resolves into the temp dir, not ~/.wade
 	oldHome := os.Getenv("HOME")
@@ -27,7 +29,7 @@ func TestUseVersionWindowsShims(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Simulate Windows layout: go.exe / gofmt.exe
+	// Simulate layout: go.exe / gofmt.exe on Windows, go/gofmt on Unix
 	if runtime.GOOS == "windows" {
 		for _, f := range []string{"go.exe", "gofmt.exe"} {
 			if err := os.WriteFile(filepath.Join(binDir, f), []byte("bin"), 0755); err != nil {
@@ -47,14 +49,21 @@ func TestUseVersionWindowsShims(t *testing.T) {
 	}
 
 	shimDir := filepath.Join(dir, "shims")
-	// On Windows the shim must be go.exe (PATHEXT); on Unix it's `go`.
+	// Windows: go.cmd wrapper (contains GOROOT + real path); Unix: symlink `go`.
 	want := []string{"go", "gofmt"}
 	if runtime.GOOS == "windows" {
-		want = []string{"go.exe", "gofmt.exe"}
+		want = []string{"go.cmd", "gofmt.cmd"}
 	}
 	for _, w := range want {
-		if _, err := os.Stat(filepath.Join(shimDir, w)); err != nil {
+		shim := filepath.Join(shimDir, w)
+		if _, err := os.Stat(shim); err != nil {
 			t.Errorf("shim %q not created: %v", w, err)
+		}
+		if runtime.GOOS == "windows" {
+			data, _ := os.ReadFile(shim)
+			if !strings.Contains(string(data), "GOROOT") || !strings.Contains(string(data), "go.exe") {
+				t.Errorf("shim %q should be a GOROOT-setting wrapper, got:\n%s", w, data)
+			}
 		}
 	}
 }

@@ -4,6 +4,18 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.5.3] — 2026-08-01
+
+### Fixed
+
+- **命令一致性(node/go/python 统一结构)**: `wade go install/use` 现在完全对齐 `wade node` 的 UX——
+  - `wade go use 1.23` → 自动匹配已安装的 `go1.23.x`(之前只做字符串拼接,`use 1.23` 报错)
+  - `wade go install 1.23.2` 和 `go1.23.2` 都接受(ResolveVersion 自动补全,无需记忆前缀)
+  - 错误提示统一不带 `go` 前缀(`not installed — run 'wade go install 1.23'`)
+- **Go 1.21+ GOROOT 问题(Windows)**: 官方 go 二进制是 trimmed 的,靠自身可执行路径推断 GOROOT——硬链接 shim 导致 `go: cannot find GOROOT directory`。Windows 改用 **`.cmd` wrapper**(set GOROOT + 真实路径调用),Unix 保持 symlink(可被 os.Executable 解析)
+
+---
+
 ## [v0.5.2] — 2026-08-01
 
 ### Added
