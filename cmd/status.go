@@ -29,6 +29,9 @@ var statusCmd = &cobra.Command{
 		fmt.Println("🏄  wade status")
 		fmt.Println("─────────────────────")
 
+		// Wade itself
+		fmt.Printf("  🏄 Wade:        %s\n", displayVersion())
+
 		// Node
 		nodeVer, _ := node.CurrentVersion()
 		if nodeVer != "" {
@@ -84,10 +87,28 @@ var statusCmd = &cobra.Command{
 		fmt.Printf("  ⚙️  Config:      %s\n", cfgPath)
 		fmt.Printf("  📁 Wade dir:    %s\n", wadeDir)
 
+		// Shim health: is ~/.wade/shims actually on PATH?
+		if nodeVer != "" {
+			shimDir, _ := node.ShimDir()
+			if !pathInEnvPath(shimDir) {
+				fmt.Println()
+				fmt.Println("  ⚠️  ~/.wade/shims is NOT on your PATH — 'node' is the system version, not wade's!")
+				fmt.Println("      Fix: wade setup --auto, then open a NEW terminal.")
+			}
+		}
+
 		fmt.Println()
 		fmt.Println("  💡 Try: wade -i | wade go ls | wade python registry ls")
 		return nil
 	},
+}
+
+// displayVersion returns the wade version string, falling back to "dev".
+func displayVersion() string {
+	if version == "" || version == "dev" {
+		return "dev (built from source)"
+	}
+	return version
 }
 
 func init() {

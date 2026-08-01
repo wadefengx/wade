@@ -4,6 +4,15 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.0] — 2026-08-01
+
+### Added
+
+- **`wade status` 显示 wade 版本**: 第一行 `🏄 Wade: v0.4.0`
+- **`wade status` shim 健康检查**: 检测 `~/.wade/shims` 是否在 PATH,不在则警告 `⚠️ ~/.wade/shims is NOT on your PATH — 'node' is the system version, not wade's!` + 修复指引(`wade setup --auto` + 重开终端)——直接定位"node -v 还是系统版本"问题
+
+---
+
 ## [v0.3.9] — 2026-08-01
 
 ### Fixed
