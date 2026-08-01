@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -58,6 +59,31 @@ Run 'wade setup --auto' to skip prompts.`,
 
 		// Step 3: Detect shell
 		shell := detectShell()
+
+		// Windows: add shims to the USER PATH env var (registry-backed) —
+		// works for cmd AND PowerShell, unlike shell profile files.
+		if runtime.GOOS == "windows" {
+			shimAbs, _ := filepath.Abs(shimDir)
+			psCmd := fmt.Sprintf(
+				`$p=[Environment]::GetEnvironmentVariable('Path','User'); if($p -notlike '*%s*'){ [Environment]::SetEnvironmentVariable('Path', $p+';%s','User'); Write-Output 'added' } else { Write-Output 'exists' }`,
+				strings.ReplaceAll(shimAbs, `\`, `\\`),
+				strings.ReplaceAll(shimAbs, `\`, `\\`),
+			)
+			out, err := exec.Command("powershell", "-NoProfile", "-Command", psCmd).CombinedOutput()
+			if err == nil && strings.Contains(string(out), "added") {
+				fmt.Printf("✅ Added %s to user PATH (cmd + PowerShell)\n", shimAbs)
+			} else if err == nil && strings.Contains(string(out), "exists") {
+				fmt.Printf("✅ %s already in user PATH\n", shimAbs)
+			} else {
+				fmt.Println("⚠️  Could not update user PATH automatically.")
+				fmt.Printf("   Add %s to your PATH manually (System Settings → Environment Variables).\n", shimAbs)
+			}
+			fmt.Println()
+			fmt.Println("⚠️  PATH updated — open a NEW cmd/PowerShell window, then run:")
+			fmt.Println("   wade node use <version>")
+			fmt.Println()
+			return nil
+		}
 		fmt.Printf("🐚 Detected shell: %s\n", shell)
 
 		// Step 4: Add to PATH

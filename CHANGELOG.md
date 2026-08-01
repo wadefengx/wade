@@ -4,6 +4,17 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.3.9] — 2026-08-01
+
+### Fixed
+
+- **Windows `node use` 后 `node -v` 还是系统版本**: shims 目录不在 PATH。原 setup 只写 PowerShell profile(且用的是 bash 语法 `export PATH=...`,PowerShell 不认),cmd 用户完全无效
+  - `wade setup` 在 Windows 上改为把 shims 加入**用户 PATH 环境变量**(注册表持久化,cmd + PowerShell 都生效),失败时给手动指引
+  - `wade node use` 后检测 shims 不在 PATH → 明确警告 `⚠️ ~/.wade/shims is NOT on your PATH — 'node' will still be the system version!` + 提示 `wade setup`
+  - `pathInEnvPath` 平台感知的 PATH 检测 + 单元测试
+
+---
+
 ## [v0.3.8] — 2026-08-01
 
 ### Fixed

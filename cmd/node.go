@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
+	"runtime"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -91,8 +93,31 @@ var nodeUseCmd = &cobra.Command{
 		}
 
 		fmt.Printf("🟢 Now using %s\n", matched)
+
+		// Windows: warn if shims dir isn't on PATH (node -v would still hit system node)
+		if runtime.GOOS == "windows" {
+			shimDir, _ := node.ShimDir()
+			if !pathInEnvPath(shimDir) {
+				fmt.Println()
+				fmt.Println("⚠️  ~/.wade/shims is NOT on your PATH — 'node' will still be the system version!")
+				fmt.Println("   Run: wade setup   (adds shims to user PATH, works for cmd + PowerShell)")
+				fmt.Println("   Then open a NEW terminal window.")
+			}
+		}
 		return nil
 	},
+}
+
+// pathInEnvPath reports whether dir is present in the current PATH.
+func pathInEnvPath(dir string) bool {
+	path := os.Getenv("PATH")
+	sep := string(os.PathListSeparator)
+	for _, p := range strings.Split(path, sep) {
+		if strings.EqualFold(strings.TrimSpace(p), dir) {
+			return true
+		}
+	}
+	return false
 }
 
 var nodeLsCmd = &cobra.Command{
