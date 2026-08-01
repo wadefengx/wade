@@ -115,15 +115,26 @@ var nodeUseCmd = &cobra.Command{
 }
 
 // pathInEnvPath reports whether dir is present in the current PATH.
+// Normalizes doubled backslashes (old wade versions wrote C:\\Users\\...
+// into the registry; the filesystem resolves it but string compare fails).
 func pathInEnvPath(dir string) bool {
 	path := os.Getenv("PATH")
 	sep := string(os.PathListSeparator)
+	want := normalizePath(dir)
 	for _, p := range strings.Split(path, sep) {
-		if strings.EqualFold(strings.TrimSpace(p), dir) {
+		if strings.EqualFold(strings.TrimSpace(normalizePath(p)), want) {
 			return true
 		}
 	}
 	return false
+}
+
+// normalizePath collapses doubled backslashes (C:\\Users → C:\Users).
+func normalizePath(p string) string {
+	if runtime.GOOS != "windows" {
+		return p
+	}
+	return strings.ReplaceAll(p, `\\`, `\`)
 }
 
 var nodeLsCmd = &cobra.Command{

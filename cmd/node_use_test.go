@@ -38,6 +38,18 @@ func TestPathInEnvPath(t *testing.T) {
 	}
 }
 
+// TestNormalizePath: old wade versions wrote doubled backslashes into the
+// registry (C:\\Users\\...). normalizePath collapses them so pathInEnvPath /
+// userPathHasShims match correctly.
+func TestNormalizePath(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows-only path normalization")
+	}
+	if got := normalizePath(`C:\\Users\\wade\\.wade\\shims`); got != `C:\Users\wade\.wade\shims` {
+		t.Errorf("normalizePath = %q, want single backslashes", got)
+	}
+}
+
 func joinPathList(entries []string) string {
 	out := ""
 	for i, e := range entries {

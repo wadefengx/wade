@@ -139,7 +139,7 @@ func userPathHasShims(shimDir string) bool {
 	if err != nil {
 		return false
 	}
-	return strings.Contains(strings.ToLower(string(out)), strings.ToLower(shimDir))
+	return strings.Contains(strings.ToLower(normalizePath(string(out))), strings.ToLower(normalizePath(shimDir)))
 }
 
 // whichNode returns the path 'node' resolves to, or "" if not found.

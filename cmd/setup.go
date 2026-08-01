@@ -72,10 +72,13 @@ func runSetup() error {
 	// evaluated BEFORE user PATH, so shims must lead the user PATH.
 	if runtime.GOOS == "windows" {
 		shimAbs, _ := filepath.Abs(shimDir)
-		esc := strings.ReplaceAll(shimAbs, `\`, `\\`)
+		// NOTE: no backslash escaping here! In a PowerShell single-quoted
+		// string, '\\' is TWO backslash chars — escaping would write
+		// C:\\Users\\... into the registry (which still resolves, but breaks
+		// Go-side string comparison in `wade status`). Write it as-is.
 		psCmd := fmt.Sprintf(
-			`$p=[Environment]::GetEnvironmentVariable('Path','User'); if(-not $p){[Environment]::SetEnvironmentVariable('Path','%s','User'); Write-Output 'added'} elseif($p -notlike '*%s*'){[Environment]::SetEnvironmentVariable('Path','%s;'+$p,'User'); Write-Output 'added'} elseif($p -like '%s;*' -or $p -eq '%s'){Write-Output 'exists'} else {$e=[regex]::Escape('%s'); $p=($p -split ';' | Where-Object {$_ -ne $e}) -join ';'; [Environment]::SetEnvironmentVariable('Path','%s;'+$p,'User'); Write-Output 'reordered'}`,
-			esc, esc, esc, esc, esc, esc, esc,
+			`$p=[Environment]::GetEnvironmentVariable('Path','User'); $p=($p -split ';' | Where-Object {$_ -ne ''} | ForEach-Object {$_ -replace '\\\\','\'}) -join ';'; if(-not $p){[Environment]::SetEnvironmentVariable('Path','%s','User'); Write-Output 'added'} elseif($p -notlike '*%s*'){[Environment]::SetEnvironmentVariable('Path','%s;'+$p,'User'); Write-Output 'added'} elseif($p -like '%s;*' -or $p -eq '%s'){Write-Output 'exists'} else {$e=[regex]::Escape('%s'); $p=($p -split ';' | Where-Object {$_ -ne $e}) -join ';'; [Environment]::SetEnvironmentVariable('Path','%s;'+$p,'User'); Write-Output 'reordered'}`,
+			shimAbs, shimAbs, shimAbs, shimAbs, shimAbs, shimAbs, shimAbs,
 		)
 		out, err := exec.Command("powershell", "-NoProfile", "-Command", psCmd).CombinedOutput()
 		outStr := string(out)

@@ -4,6 +4,17 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.4.6] — 2026-08-01
+
+### Fixed
+
+- **`wade status` 误报 "shims NOT on PATH"(实际已生效)**: setup 的 PowerShell 命令里 `strings.ReplaceAll(shimAbs, \`\\\`, \`\\\\\`)` 把路径转义成双反斜杠写入注册表(`C:\\Users\\...`)——Windows 文件系统解析容忍它(`where node` 能找到 shim),但 Go 的字符串比较永远匹配不上 → status 误报
+  - setup 不再转义(写单反斜杠),并在写入前自动把已有双反斜杠归一化
+  - `pathInEnvPath` / `userPathHasShims` 比较前 `normalizePath` 折叠双反斜杠
+  - `wade setup --auto` 重跑一次即可修复已污染的注册表
+
+---
+
 ## [v0.4.5] — 2026-08-01
 
 ### Fixed
