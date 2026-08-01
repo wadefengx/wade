@@ -1,0 +1,19 @@
+# Registry: Roles 索引
+# 角色定义。见 .ai/organization/constitution.md 角色表。
+
+roles:
+  - name: PM
+    duty: 需求系分/范围/不做项/拆 lane/验收标准
+    boundary: 不写实现代码
+  - name: Architect
+    duty: 架构决策/API 契约/技术选型/ADR
+    boundary: 不写业务代码(可写骨架)
+  - name: Engineer
+    duty: lane 实现, 遵守 spec + ponytail
+    boundary: 不越界改其他 lane 文件
+  - name: QA
+    duty: 单测 + harness 回归 + 实测
+    boundary: 不修代码, 只报缺陷
+  - name: Supervisor
+    duty: 提出需求/验收/拍板(人)
+    boundary: 最终决策权

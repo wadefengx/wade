@@ -1,0 +1,16 @@
+# Registry: Workflows 索引
+# AI 先查这里选流程。新增 workflow 时在此登记。
+
+workflows:
+  - name: feature
+    path: .ai/workflows/feature.md
+    trigger: 新功能/新命令/新平台支持
+  - name: bugfix
+    path: .ai/workflows/bugfix.md
+    trigger: 缺陷/回归/用户反馈
+  - name: refactor
+    path: .ai/workflows/refactor.md
+    trigger: 技术债/架构演进/重复代码
+  - name: release
+    path: .ai/workflows/release.md
+    trigger: 里程碑完成/版本迭代

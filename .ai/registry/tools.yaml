@@ -1,0 +1,31 @@
+# Registry: Tools 索引
+# 项目可用的工具与命令。AI 先查这里。
+
+tools:
+  - name: go
+    usage: 构建/测试/vet
+    commands:
+      - "go build ./..."
+      - "go test ./... -cover"
+      - "go vet ./..."
+      - "gofmt -l ."
+  - name: make
+    usage: 常用目标
+    commands:
+      - "make build"   # 本地构建(带版本注入)
+      - "make test"    # 全量测试
+      - "make install" # 安装到 /usr/local/bin
+  - name: git
+    usage: 版本控制
+    note: "push 卡住时: git config http.proxy http://127.0.0.1:7890, 完事 unset"
+  - name: gh
+    usage: GitHub API 操作
+    note: "当前登录 EMU 账号(you-you-sheng_hpi), 对 wadefengx/* 只有 pull; 写操作用 keychain 的 wadefengx PAT 走 curl"
+  - name: copilot
+    usage: 委托 coding 任务
+    commands:
+      - "copilot --model gpt-5.6-terra --allow-all -p '<task>'"
+  - name: verify.sh
+    usage: 质量门禁
+    commands:
+      - ".ai/harness/verify.sh"

@@ -64,11 +64,15 @@
 
 ### Rules for AI agents
 
-1. **Spec first** — Before writing any code for a feature, write or update SPEC.md
+1. **Spec first** — Before writing any code for a feature, write or update the spec in `.ai/specs/active/` (template: `.ai/specs/TEMPLATE.md`)
 2. **Spec defines passing criteria** — A test passes if it matches the spec
 3. **Refactoring** — Change implementation, keep spec; if spec needs to change, it's a feature change, not a refactor
 4. **No code without spec** — Every function, every command, every behavior must be described in a spec
 5. **Specs are living documents** — Update when behavior changes, not when implementation changes
+6. **Check `.ai/registry/` first** — skills/workflows/tools indexes, don't scan directories
+7. **Follow the workflow** — pick the matching `.ai/workflows/*.md` (feature/bugfix/refactor/release) for the task
+8. **Quality gate** — run `.ai/harness/verify.sh` before committing; all checks must be green
+9. **Feed back** — completed tasks write lessons/decisions to `.ai/memory/`; reusable patterns become skills
 
 ---
 
@@ -100,6 +104,17 @@ wade (single Go binary)
 ├── .github/
 │   └── workflows/
 │       └── release.yml     # Cross-compile + GitHub Releases
+├── .ai/                    # AI-Native 组织层 (AIOS)
+│   ├── organization/       # constitution(五大对象模型) + roles/
+│   ├── runtime/            # pipeline / lane-states / confidence / model-routing
+│   ├── workflows/          # feature / bugfix / refactor / release
+│   ├── registry/           # skills / workflows / models / tools / roles 索引
+│   ├── specs/              # TEMPLATE + active/(SPEC-001 master) + completed/ + archived/
+│   ├── memory/             # decisions / lessons / bug / architecture
+│   ├── knowledge/          # 被动参考
+│   ├── architecture/       # ADR 记录
+│   ├── harness/            # verify.sh 质量门禁 (AI CI)
+│   └── changelog/          # 历史归档
 ├── scripts/
 │   └── install.sh
 ├── go.mod

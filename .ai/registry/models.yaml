@@ -1,0 +1,16 @@
+# Registry: Models 索引
+# 各任务类型的模型路由。见 .ai/runtime/pipeline.md Model Routing。
+
+models:
+  daily:
+    desc: 日常问答/简单修改
+    pick: flash 级模型(快)
+  complex:
+    desc: 复杂实现/重构/多文件变更
+    pick: 顶级模型(gpt-5.6-terra / claude sonnet)
+  architect:
+    desc: 架构决策/契约设计/spec 编写
+    pick: 深度思考模型
+  mechanical:
+    desc: 重复机械任务
+    pick: 脚本/harness,不费模型

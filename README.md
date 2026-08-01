@@ -10,6 +10,8 @@ Wade replaces **nvm + cgr/nrm + gvm + pyenv**. Single binary, install once, work
 
 📖 [中文文档](README_zh.md) · 🌐 [Website](https://wadefengx.github.io/wade)
 
+> 🤖 **AI-Native 开发体系**:本项目按 [AI_DEV_INSTRUCTION](https://github.com/wadefengx/wade-ai/blob/main/AI_DEV_INSTRUCTION.md) 组织,`.ai/` 目录包含 constitution/runtime/workflows/registry/specs/harness。AI 代理先查 `.ai/registry/`,质量门禁跑 `.ai/harness/verify.sh`。
+
 ---
 
 ## Installation

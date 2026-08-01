@@ -1,0 +1,18 @@
+# Registry: Skills 索引
+# AI 先查这里,不扫目录。新增 skill 时在此登记。
+
+skills:
+  - name: wade-github-push
+    path: ~/.hermes/skills/github/wade-github-push/SKILL.md
+    trigger: push 到 wadefengx/* 仓库
+    summary: keychain token + GIT_TERMINAL_PROMPT=0 + 代理绕过
+
+  - name: copilot-cli-orchestration
+    path: ~/.hermes/skills/autonomous-ai-agents/copilot-cli-orchestration/SKILL.md
+    trigger: 指挥 copilot CLI 干 coding 活
+    summary: --allow-all / gpt-5.6-terra / 并行派活 / 超时≠失败
+
+  - name: go-cli-project
+    path: ~/.hermes/skills/go-cli-project/SKILL.md
+    trigger: 新建 Go CLI 项目
+    summary: SDD + cobra + 跨平台发布脚手架
