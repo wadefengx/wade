@@ -4,6 +4,16 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.5.0] — 2026-08-01
+
+### Fixed
+
+- **Windows 安装 Go 后 `go` 命令找不到**: UseVersion 写死 `bin/go`(无扩展名),Windows 上是 `go.exe` → os.Stat 失败 → **shim 从未创建**(和 node 的 `node.exe` 同类 bug)。现在 Windows 查找 `go.exe`/`gofmt.exe`,shim 名保持无扩展名(`shims/go` → go.exe,cmd 的 PATHEXT 解析)
+- **`wade go install` 后自动激活**: 和 `wade node install` 行为一致,装完立即 `use`,不用再单独 `wade go use`
+- 新增 Windows shim 布局测试
+
+---
+
 ## [v0.4.9] — 2026-08-01
 
 ### Fixed

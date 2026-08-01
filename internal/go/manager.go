@@ -254,6 +254,12 @@ func Install(version, mirror string) error {
 	}
 
 	fmt.Printf("✅ Go %s installed\n", version)
+
+	// Auto-activate like `wade node install` does — user expects `go` to
+	// work right after install, not after a separate `wade go use`.
+	if err := UseVersion(version); err != nil {
+		return fmt.Errorf("installed but activation failed: %w", err)
+	}
 	return nil
 }
 
@@ -323,12 +329,23 @@ func UseVersion(version string) error {
 
 	versionBin := filepath.Join(dir, "go", "versions", version, "bin")
 
-	for _, name := range []string{"go", "gofmt"} {
+	// Windows: go.exe / gofmt.exe; Unix: go / gofmt
+	names := []string{"go", "gofmt"}
+	if runtime.GOOS == "windows" {
+		names = []string{"go.exe", "gofmt.exe"}
+	}
+	for _, name := range names {
 		target := filepath.Join(versionBin, name)
 		if _, err := os.Stat(target); err != nil {
 			continue
 		}
-		shim := filepath.Join(shimDir, name)
+		// shim name must be extensionless on Windows too — cmd's PATHEXT
+		// resolves `go` → go.exe, so the shim points at the .exe target.
+		shimName := name
+		if runtime.GOOS == "windows" {
+			shimName = strings.TrimSuffix(name, filepath.Ext(name))
+		}
+		shim := filepath.Join(shimDir, shimName)
 		if err := os.Remove(shim); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("remove existing shim for %s: %w", name, err)
 		}
