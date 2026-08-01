@@ -4,6 +4,14 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.5.2] — 2026-08-01
+
+### Added
+
+- **`wade status` Go shim 健康检查**: 之前 status 只读 current 文件(显示 go1.23.12)但从不验证 `go` 命令是否真的解析到 wade shim——造成"已激活"错觉。现在检测: ① `go` 解析到系统/nvm → 警告 + `wade go use` 提示 ② `go` 完全不在 PATH → 警告 + `wade setup` 提示(与 node 的 shim 检查对称)
+
+---
+
 ## [v0.5.1] — 2026-08-01
 
 ### Fixed

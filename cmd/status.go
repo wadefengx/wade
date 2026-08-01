@@ -53,6 +53,16 @@ var statusCmd = &cobra.Command{
 				fmt.Print(" (default)")
 			}
 			fmt.Println()
+			// Shim health: does `go` actually resolve to wade's shim?
+			if p := whichCmd("go"); p != "" && !strings.Contains(strings.ToLower(p), "shims") {
+				fmt.Println()
+				fmt.Printf("  ⚠️  'go' resolves to %s (system/nvm), not wade's shim!\n", p)
+				fmt.Println("      Fix: wade go use <version>, then open a NEW terminal.")
+			} else if p == "" {
+				fmt.Println()
+				fmt.Println("  ⚠️  'go' is NOT on PATH — wade's shim isn't reachable!")
+				fmt.Println("      Fix: wade setup --auto, then open a NEW terminal.")
+			}
 		} else {
 			// Show system Go if not managed by wade
 			if sysGo := python.DetectSystemGo(); sysGo != "" {
@@ -144,7 +154,12 @@ func userPathHasShims(shimDir string) bool {
 
 // whichNode returns the path 'node' resolves to, or "" if not found.
 func whichNode() string {
-	p, err := exec.LookPath("node")
+	return whichCmd("node")
+}
+
+// whichCmd returns the path a command resolves to, or "" if not found.
+func whichCmd(name string) string {
+	p, err := exec.LookPath(name)
 	if err != nil {
 		return ""
 	}
