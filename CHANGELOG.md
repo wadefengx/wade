@@ -4,6 +4,21 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.5.5] — 2026-08-04
+
+### Added
+
+- **`wade python` 版本全权接管**(SPEC-002): `install/use/ls/ls-remote/default/uninstall`
+  - 下载源: astral-sh/python-build-standalone(uv 同源,便携含 pip,双通道下载)
+  - `wade python install 3.11` → 解析最新 3.11.x → 下载解压 → 自动激活
+  - `wade python use 3.11` → 切 shim(python3/pip3),支持部分版本匹配
+  - `wade python ls` → 托管版本 + 系统检测;`ls-remote` → 平台可用版本
+  - `wade python default` → 设默认并切换(同 node)
+  - `wade init` 选 All/autoYes → 自动安装 Python 3.12
+- **`wade init` 交互式 Go/Python 分支反馈**: 设置 mirror/proxy/pip 后打印 `✓ Go mirror/Go proxy/pip mirror`(之前静默)
+
+---
+
 ## [v0.5.4] — 2026-08-04
 
 ### Fixed

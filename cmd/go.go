@@ -257,64 +257,6 @@ var goProxyUseCmd = &cobra.Command{
 	},
 }
 
-// ── Python commands ──
-
-var pythonCmd = &cobra.Command{
-	Use:   "python",
-	Short: "Manage Python versions and pip mirrors",
-	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
-	},
-}
-
-var pythonLsCmd = &cobra.Command{
-	Use:   "ls",
-	Short: "Show Python versions",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		pythons := python.DetectSystemPython()
-		fmt.Println("🐍 Detected Python:")
-		for _, p := range pythons {
-			fmt.Printf("  %s\n", p)
-		}
-		if len(pythons) == 0 {
-			fmt.Println("  (no Python found on PATH)")
-		}
-		return nil
-	},
-}
-
-var pythonRegistryCmd = &cobra.Command{
-	Use:   "registry",
-	Short: "Manage pip mirrors",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cmd.Help()
-		return nil
-	},
-}
-
-var pythonRegistryLsCmd = &cobra.Command{
-	Use:   "ls",
-	Short: "List pip mirrors",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		headers := []string{"Name", "URL"}
-		var rows [][]string
-		for _, m := range python.PipPresets() {
-			rows = append(rows, []string{m.Name, m.URL})
-		}
-		renderTable(headers, rows)
-		return nil
-	},
-}
-
-var pythonRegistryUseCmd = &cobra.Command{
-	Use:   "use <name>",
-	Short: "Switch pip to a mirror",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return python.UsePipMirror(args[0])
-	},
-}
-
 func init() {
 	// Go commands
 	rootCmd.AddCommand(goCmd)
@@ -330,10 +272,4 @@ func init() {
 	goProxyCmd.AddCommand(goProxyLsCmd)
 	goProxyCmd.AddCommand(goProxyUseCmd)
 
-	// Python commands
-	rootCmd.AddCommand(pythonCmd)
-	pythonCmd.AddCommand(pythonLsCmd)
-	pythonCmd.AddCommand(pythonRegistryCmd)
-	pythonRegistryCmd.AddCommand(pythonRegistryLsCmd)
-	pythonRegistryCmd.AddCommand(pythonRegistryUseCmd)
 }

@@ -81,8 +81,14 @@ var statusCmd = &cobra.Command{
 		}
 
 		// Python
-		pythons := python.DetectSystemPython()
-		if len(pythons) > 0 {
+		pythonVer, _ := python.CurrentVersion()
+		if pythonVer != "" {
+			fmt.Printf("  🐍 Python:      %s", pythonVer)
+			if cfg.DefaultPythonVersion == pythonVer {
+				fmt.Print(" (default)")
+			}
+			fmt.Println()
+		} else if pythons := python.DetectSystemPython(); len(pythons) > 0 {
 			var versions []string
 			for _, p := range pythons {
 				parts := strings.SplitN(p, " (system:", 2)

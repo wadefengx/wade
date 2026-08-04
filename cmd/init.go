@@ -165,6 +165,7 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 			for _, m := range mirrors {
 				if strings.HasPrefix(mirrorOpt, m.Name) {
 					cfg.GoMirror = m.URL
+					fmt.Printf("   ✓ Go mirror:  %s\n", m.Name)
 					break
 				}
 			}
@@ -186,6 +187,7 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 			for _, p := range proxies {
 				if strings.HasPrefix(proxyOpt, p.Name) {
 					python.UseGoProxy(p.Name)
+					fmt.Printf("   ✓ Go proxy:   %s\n", p.Name)
 					break
 				}
 			}
@@ -214,8 +216,59 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 			for _, m := range mirrors {
 				if strings.HasPrefix(mirrorOpt, m.Name) {
 					python.UsePipMirror(m.Name)
+					fmt.Printf("   ✓ pip mirror: %s\n", m.Name)
 					break
 				}
+			}
+		}
+		installed, err := python.InstalledVersions()
+		if err != nil {
+			return fmt.Errorf("list managed Python versions: %w", err)
+		}
+		pythonVersion := ""
+		installPython := false
+		if autoYes {
+			for _, version := range installed {
+				if strings.HasPrefix(version, "3.12.") {
+					pythonVersion = version
+					break
+				}
+			}
+			if pythonVersion == "" {
+				pythonVersion = "3.12"
+				installPython = true
+			}
+		} else if len(installed) == 0 {
+			option := ""
+			prompt := &survey.Select{
+				Message: "Install a Python version?",
+				Options: []string{"3.12 — recommended", "3.11", "Skip"},
+			}
+			if err := survey.AskOne(prompt, &option); err != nil {
+				return err
+			}
+			if option != "Skip" {
+				pythonVersion = strings.Fields(option)[0]
+				installPython = true
+			}
+		}
+		if pythonVersion != "" {
+			if installPython {
+				fmt.Printf("◇  Installing Python %s...\n", pythonVersion)
+				if err := python.Install(pythonVersion); err != nil {
+					return fmt.Errorf("install Python %s: %w", pythonVersion, err)
+				}
+			}
+			if err := python.UseVersion(pythonVersion); err != nil {
+				return fmt.Errorf("activate Python %s: %w", pythonVersion, err)
+			}
+			managed, err := python.CurrentVersion()
+			if err != nil {
+				return fmt.Errorf("activate Python %s: %w", pythonVersion, err)
+			}
+			cfg.DefaultPythonVersion = managed
+			if err := config.Save(cfg); err != nil {
+				return err
 			}
 		}
 		fmt.Println()
@@ -295,7 +348,11 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 		fmt.Printf("   Go mirror: %s\n", goMirror)
 	}
 	if hasPython {
-		fmt.Printf("   Python:    (system — detected, not installed by wade)\n")
+		pythonVer, _ := python.CurrentVersion()
+		if pythonVer == "" {
+			pythonVer = "(system — detected, not installed by wade)"
+		}
+		fmt.Printf("   Python:    %s\n", pythonVer)
 	}
 	fmt.Println()
 	fmt.Println("   Quick: wade status | wade node ls | wade go ls | wade python ls")
