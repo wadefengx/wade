@@ -4,6 +4,17 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.5.6] — 2026-08-04
+
+### Fixed
+
+- **交互式 `wade init` 选 All 后 Go/Python 从未生效(真根因)**: `survey.Select` 是单选,结果应写入 `*string`,但代码传了 `*[]string`——survey 的 writeAnswer 对 slice 目标报 "Unable to convert from string to type slice",写入静默失败,runtimes 保持空 → `hasGo`/`hasPython` 全 false → **交互模式下 Go/Python 分支(含 mirror/proxy/pip 配置)从未执行过**,只有 `init -y` 正常(直接赋值 runtimes)
+  - 修复: 单选结果写入 `var choice string`,`runtimes = []string{choice}`
+  - 新增回归测试 TestRuntimesSelection(All → 三运行时全开,单选 → 只开对应)
+- (上轮 v0.5.4/v0.5.5 的 summary 改动其实已生效,只是交互版 hasGo/hasPython 一直是 false)
+
+---
+
 ## [v0.5.5] — 2026-08-04
 
 ### Added

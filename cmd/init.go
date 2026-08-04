@@ -29,11 +29,14 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 	if autoYes {
 		runtimes = []string{"Node.js", "Go", "Python"}
 	} else {
+		// survey.Select is single-select: answer is ONE string, not []string.
+		var choice string
 		prompt := &survey.Select{
 			Message: "Which runtimes to configure?",
 			Options: []string{"Node.js", "Go", "Python", "All of the above"},
 		}
-		survey.AskOne(prompt, &runtimes)
+		survey.AskOne(prompt, &choice)
+		runtimes = []string{choice}
 	}
 
 	hasNode := contains(runtimes, "Node.js") || contains(runtimes, "All of the above")
