@@ -4,6 +4,17 @@ All notable changes to wade. This file is designed to be **AI-friendly** — str
 
 ---
 
+## [v0.5.4] — 2026-08-04
+
+### Fixed
+
+- **`wade init` 选 All 后只显示 Node,Go/Python 无反馈**: Go/Python 分支实际执行了(mirror/proxy/pip mirror),但**完全静默**且 summary 不显示——用户误以为没配置
+  - autoYes(init -y)时打印 `✓ Go mirror: google-cn` / `✓ Go proxy: goproxy.cn` / `✓ pip mirror: tsinghua`
+  - summary 增加 Go(版本 + mirror)、Python 行,未托管时明确标注 `(system — not managed by wade)`
+  - 新增真实 config 读写测试(registry + go mirror 持久化)
+
+---
+
 ## [v0.5.3] — 2026-08-01
 
 ### Fixed

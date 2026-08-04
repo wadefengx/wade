@@ -146,6 +146,8 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 			cfg.GoMirror = "https://golang.google.cn/dl/"
 			config.Save(cfg)
 			python.UseGoProxy("goproxy.cn")
+			fmt.Println("   ✓ Go mirror:  google-cn")
+			fmt.Println("   ✓ Go proxy:   goproxy.cn")
 		} else {
 			// Go mirror
 			mirrors := python.GoMirrorPresets()
@@ -195,6 +197,7 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 	if hasPython {
 		if autoYes {
 			python.UsePipMirror("tsinghua")
+			fmt.Println("   ✓ pip mirror: tsinghua")
 		} else {
 			mirrors := python.PipPresets()
 			opts := make([]string, len(mirrors))
@@ -276,9 +279,23 @@ func runInteractiveWizard(cmd *cobra.Command, args []string) error {
 	curReg, curURL, _ := registry.GetCurrent()
 	fmt.Printf("   Node:      %s\n", cur)
 	fmt.Printf("   Registry:  %s → %s\n", curReg, curURL)
-	goVer, _ := golang.CurrentVersion()
-	if goVer != "" {
+	if hasGo {
+		goVer, _ := golang.CurrentVersion()
+		if goVer == "" {
+			goVer = "(system — not managed by wade)"
+		}
+		goMirror := cfg.GoMirror
+		for _, m := range python.GoMirrorPresets() {
+			if strings.HasPrefix(cfg.GoMirror, m.URL) {
+				goMirror = m.Name
+				break
+			}
+		}
 		fmt.Printf("   Go:        %s\n", goVer)
+		fmt.Printf("   Go mirror: %s\n", goMirror)
+	}
+	if hasPython {
+		fmt.Printf("   Python:    (system — detected, not installed by wade)\n")
 	}
 	fmt.Println()
 	fmt.Println("   Quick: wade status | wade node ls | wade go ls | wade python ls")
