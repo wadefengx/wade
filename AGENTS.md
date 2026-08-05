@@ -64,6 +64,7 @@
 
 ### Rules for AI agents
 
+0. **Runtime Operating Model 2.0** — 先读 `.ai/runtime/AI_INSTRUCTION_V2.md`(Goal-First / Skill 触发 / Subagent / Verification Iron Law / 自进化)。与本文档冲突时以 v2 为准。
 1. **Spec first** — Before writing any code for a feature, write or update the spec in `.ai/specs/active/` (template: `.ai/specs/TEMPLATE.md`)
 2. **Spec defines passing criteria** — A test passes if it matches the spec
 3. **Refactoring** — Change implementation, keep spec; if spec needs to change, it's a feature change, not a refactor
